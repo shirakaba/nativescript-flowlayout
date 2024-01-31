@@ -1,0 +1,26 @@
+{
+  "name": "nativescript-viewtext-monorepo",
+  "version": "0.0.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "pnpm -r build",
+    "dev": "pnpm -r dev --parallel",
+    "format": "pnpm -r format",
+    "lint": "pnpm -r lint",
+    "test:e2e": "pnpm -r test:e2e",
+    "test:unit": "pnpm -r test:unit"
+  },
+  "devDependencies": {
+    "@repo/eslint-config": "workspace:*",
+    "eslint": "^8.56.0",
+    "prettier": "^3.2.5"
+  },
+  "engines": {
+    "node": ">= 20.0.0"
+  },
+  "packageManager": "pnpm@8.15.1"
+}
