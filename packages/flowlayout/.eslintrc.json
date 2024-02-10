@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json.schemastore.org/eslintrc",
+  "root": true,
+  "extends": [
+    "@repo/eslint-config/unicorn.cjs",
+    "@repo/eslint-config/javascript-typescript.cjs",
+    "@repo/eslint-config/imports.cjs",
+    "@repo/eslint-config/prettier.cjs"
+  ],
+  // As long as ignorePatterns is present (even if it's an empty array),
+  // @eslintrc/eslintrc implicitly adds the following ignore patterns:
+  // ["/**/node_modules/*", ".*", "!.eslintrc.*", "!../"]
+  // https://github.com/eslint/eslintrc/blob/01db002fdc8d6c9df3a922f701fc626da342cb97/lib/config-array/ignore-pattern.js#L113-L114
+  "ignorePatterns": ["typings", "dist", "platforms/ios"],
+  "rules": {
+    "@typescript-eslint/triple-slash-reference": "off"
+  }
+}

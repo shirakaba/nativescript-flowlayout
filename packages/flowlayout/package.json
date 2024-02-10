@@ -1,0 +1,43 @@
+{
+  "name": "@repo/flowlayout",
+  "version": "0.0.1",
+  "description": "A NativeScript LayoutBase, FlowLayout (block-and-inline layout)",
+  "main": "index",
+  "typings": "index.d.ts",
+  "nativescript": {
+    "platforms": {
+      "ios": "7.0.6",
+      "android": "7.0.1"
+    }
+  },
+  "scripts": {
+    "build": "tsc"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/shirakaba/nativescript-flowlayout.git"
+  },
+  "keywords": [
+    "NativeScript",
+    "JavaScript",
+    "TypeScript",
+    "iOS",
+    "Android"
+  ],
+  "author": {
+    "name": "Jamie Birch"
+  },
+  "bugs": {
+    "url": "https://github.com/shirakaba/nativescript-flowlayout/issues"
+  },
+  "license": "MIT",
+  "homepage": "https://github.com/shirakaba/nativescript-flowlayout/blob/main/packages/react-native-core",
+  "readmeFilename": "README.md",
+  "dependencies": {
+    "@nativescript/core": "~8.6.0"
+  },
+  "devDependencies": {
+    "@repo/tsconfig": "workspace:^",
+    "typescript": "~5.2.0"
+  }
+}

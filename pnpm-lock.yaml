@@ -26,6 +26,9 @@ importers:
       '@nativescript/ios':
         specifier: ^8.6.3
         version: 8.6.3
+      '@repo/flowlayout':
+        specifier: workspace:*
+        version: link:../../packages/flowlayout
     devDependencies:
       '@nativescript/types':
         specifier: ~8.6.0
@@ -57,6 +60,19 @@ importers:
       eslint-plugin-unicorn:
         specifier: ^50.0.1
         version: 50.0.1(eslint@8.57.0)
+
+  packages/flowlayout:
+    dependencies:
+      '@nativescript/core':
+        specifier: ~8.6.0
+        version: 8.6.2
+    devDependencies:
+      '@repo/tsconfig':
+        specifier: workspace:^
+        version: link:../tsconfig
+      typescript:
+        specifier: ~5.2.0
+        version: 5.2.2
 
   packages/tsconfig: {}
 
