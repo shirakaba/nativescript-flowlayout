@@ -1,0 +1,15 @@
+// You can add custom settings here
+// for example you can uncomment the following line to force distribution code signing
+// CODE_SIGN_IDENTITY = iPhone Distribution 
+// To build for device with XCode you need to specify your development team.
+// DEVELOPMENT_TEAM = YOUR_TEAM_ID;
+ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+
+// * Uncomment this setting to generate TypeScript declarations for the iOS SDK and all linked libraries.
+// * They will be generated on each build, so you can find them after running "ns build ios" in "YOUR_APP/platforms/ios".
+// NS_TYPESCRIPT_DECLARATIONS_PATH = $(SRCROOT)/typescript-declarations
+
+// * Uncomment this setting to generate human readable metadata for the iOS SDK and all linked libraries.
+// * You can learn more about NativeScript metadata in the docs: http://docs.nativescript.org/runtimes/ios/Overview#metadata
+// * It will be generated on each build, so you can find it after running "ns build ios" in "YOUR_APP/platforms/ios".
+// NS_DEBUG_METADATA_PATH = $(SRCROOT)/debug-metadata
