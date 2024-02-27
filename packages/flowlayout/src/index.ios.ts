@@ -1,3 +1,4 @@
+/* eslint-disable unicorn/prefer-at */
 import { View } from "@nativescript/core";
 import { layout } from "@nativescript/core/utils";
 
@@ -51,7 +52,6 @@ export class FlowLayout extends WrapLayoutBase {
     let remainingHeight = availableHeight;
 
     this._lengths.length = 0;
-    let rowOrColumn = 0;
     let maxLength = 0;
 
     const isVertical = this.orientation === "vertical";
@@ -65,44 +65,33 @@ export class FlowLayout extends WrapLayoutBase {
       );
       const childMeasuredWidth = desiredSize.measuredWidth;
       const childMeasuredHeight = desiredSize.measuredHeight;
-      const isFirst = this._lengths.length <= rowOrColumn;
 
       if (isVertical) {
         if (childMeasuredHeight > remainingHeight) {
-          rowOrColumn++;
           maxLength = Math.max(maxLength, measureHeight);
           measureHeight = childMeasuredHeight;
           remainingHeight = availableHeight - childMeasuredHeight;
-          this._lengths[isFirst ? rowOrColumn - 1 : rowOrColumn] =
-            childMeasuredWidth;
+          this._lengths.push(childMeasuredWidth);
         } else {
           remainingHeight -= childMeasuredHeight;
           measureHeight += childMeasuredHeight;
         }
       } else {
         if (childMeasuredWidth > remainingWidth) {
-          rowOrColumn++;
           maxLength = Math.max(maxLength, measureWidth);
           measureWidth = childMeasuredWidth;
           remainingWidth = availableWidth - childMeasuredWidth;
-          this._lengths[isFirst ? rowOrColumn - 1 : rowOrColumn] =
-            childMeasuredHeight;
+          this._lengths.push(childMeasuredHeight);
         } else {
           remainingWidth -= childMeasuredWidth;
           measureWidth += childMeasuredWidth;
         }
       }
 
-      if (isFirst) {
-        this._lengths[rowOrColumn] = isVertical
-          ? childMeasuredWidth
-          : childMeasuredHeight;
-      } else {
-        this._lengths[rowOrColumn] = Math.max(
-          this._lengths[rowOrColumn],
-          isVertical ? childMeasuredWidth : childMeasuredHeight,
-        );
-      }
+      this._lengths[this._lengths.length - 1] = Math.max(
+        this._lengths[this._lengths.length - 1],
+        isVertical ? childMeasuredWidth : childMeasuredHeight,
+      );
     });
 
     if (isVertical) {
@@ -202,7 +191,7 @@ export class FlowLayout extends WrapLayoutBase {
           rowOrColumn++;
 
           // Take respective column width.
-          childWidth = this._lengths[isFirst ? rowOrColumn - 1 : rowOrColumn];
+          childWidth = this._lengths[rowOrColumn];
         }
 
         if (childLeft < childrenWidth && childTop < childrenHeight) {
@@ -237,7 +226,7 @@ export class FlowLayout extends WrapLayoutBase {
           rowOrColumn++;
 
           // Take respective row height.
-          childHeight = this._lengths[isFirst ? rowOrColumn - 1 : rowOrColumn];
+          childHeight = this._lengths[rowOrColumn];
         }
 
         if (childLeft < childrenWidth && childTop < childrenHeight) {
