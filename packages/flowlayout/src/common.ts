@@ -2,7 +2,6 @@ import {
   CoreTypes,
   CSSType,
   LayoutBase,
-  Length,
   makeParser,
   makeValidator,
   Property,
@@ -18,32 +17,6 @@ export abstract class WrapLayoutBase extends LayoutBase {
 }
 
 WrapLayoutBase.prototype.recycleNativeView = "auto";
-
-export const itemWidthProperty = new Property<
-  WrapLayoutBase,
-  CoreTypes.LengthType
->({
-  name: "itemWidth",
-  defaultValue: "auto",
-  affectsLayout: __IOS__,
-  valueConverter: (v) => Length.parse(v),
-  valueChanged: (target, oldValue, newValue) =>
-    (target.effectiveItemWidth = Length.toDevicePixels(newValue, -1)),
-});
-itemWidthProperty.register(WrapLayoutBase);
-
-export const itemHeightProperty = new Property<
-  WrapLayoutBase,
-  CoreTypes.LengthType
->({
-  name: "itemHeight",
-  defaultValue: "auto",
-  affectsLayout: __IOS__,
-  valueConverter: (v) => Length.parse(v),
-  valueChanged: (target, oldValue, newValue) =>
-    (target.effectiveItemHeight = Length.toDevicePixels(newValue, -1)),
-});
-itemHeightProperty.register(WrapLayoutBase);
 
 const converter = makeParser<CoreTypes.OrientationType>(
   makeValidator<CoreTypes.OrientationType>(

@@ -41,12 +41,10 @@ export class FlowLayout extends WrapLayoutBase {
     const childWidthMeasureSpec = getChildMeasureSpec(
       widthMode,
       availableWidth,
-      this.effectiveItemWidth,
     );
     const childHeightMeasureSpec = getChildMeasureSpec(
       heightMode,
       availableHeight,
-      this.effectiveItemHeight,
     );
 
     let remainingWidth = availableWidth;
@@ -58,11 +56,6 @@ export class FlowLayout extends WrapLayoutBase {
 
     const isVertical = this.orientation === "vertical";
 
-    const useItemWidth = this.effectiveItemWidth > 0;
-    const useItemHeight = this.effectiveItemHeight > 0;
-    const itemWidth = this.effectiveItemWidth;
-    const itemHeight = this.effectiveItemHeight;
-
     this.eachLayoutChild((child, _last) => {
       const desiredSize = View.measureChild(
         this,
@@ -70,12 +63,8 @@ export class FlowLayout extends WrapLayoutBase {
         childWidthMeasureSpec,
         childHeightMeasureSpec,
       );
-      const childMeasuredWidth = useItemWidth
-        ? itemWidth
-        : desiredSize.measuredWidth;
-      const childMeasuredHeight = useItemHeight
-        ? itemHeight
-        : desiredSize.measuredHeight;
+      const childMeasuredWidth = desiredSize.measuredWidth;
+      const childMeasuredHeight = desiredSize.measuredHeight;
       const isFirst = this._lengths.length <= rowOrColumn;
 
       if (isVertical) {
@@ -196,8 +185,6 @@ export class FlowLayout extends WrapLayoutBase {
       const length = this._lengths[rowOrColumn];
       if (isVertical) {
         childWidth = length;
-        childHeight =
-          this.effectiveItemHeight > 0 ? this.effectiveItemHeight : childHeight;
         const isFirst = childTop === paddingTop;
         if (
           childTop + childHeight > childrenHeight &&
@@ -232,8 +219,6 @@ export class FlowLayout extends WrapLayoutBase {
         // Move next child Top position to bottom.
         childTop += childHeight;
       } else {
-        childWidth =
-          this.effectiveItemWidth > 0 ? this.effectiveItemWidth : childWidth;
         childHeight = length;
         const isFirst = childLeft === paddingLeft;
         if (
@@ -273,20 +258,8 @@ export class FlowLayout extends WrapLayoutBase {
   }
 }
 
-function getChildMeasureSpec(
-  parentMode: number,
-  parentLength: number,
-  itemLength: number,
-): number {
-  switch (true) {
-    case itemLength > 0: {
-      return layout.makeMeasureSpec(itemLength, layout.EXACTLY);
-    }
-    case parentMode === layout.UNSPECIFIED: {
-      return layout.makeMeasureSpec(0, layout.UNSPECIFIED);
-    }
-    default: {
-      return layout.makeMeasureSpec(parentLength, layout.AT_MOST);
-    }
-  }
+function getChildMeasureSpec(parentMode: number, parentLength: number): number {
+  return parentMode === layout.UNSPECIFIED
+    ? layout.makeMeasureSpec(0, layout.UNSPECIFIED)
+    : layout.makeMeasureSpec(parentLength, layout.AT_MOST);
 }
