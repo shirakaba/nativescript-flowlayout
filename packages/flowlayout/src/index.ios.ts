@@ -180,6 +180,7 @@ export class FlowLayout extends WrapLayoutBase {
     const childrenWidth = right - left - paddingRight;
     let rowOrColumn = 0;
 
+    let i = 0;
     this.eachLayoutChild((child, _last) => {
       const length = this._lengths[rowOrColumn];
       let childHeight: number;
@@ -194,7 +195,6 @@ export class FlowLayout extends WrapLayoutBase {
           child.effectiveMarginBottom;
         childWidth = length;
 
-        const isFirst = childTop === paddingTop;
         if (
           childTop + childHeight > childrenHeight &&
           childLeft + childWidth <= childrenWidth
@@ -202,7 +202,7 @@ export class FlowLayout extends WrapLayoutBase {
           // Move to top.
           childTop = paddingTop;
 
-          if (!isFirst) {
+          if (i > 0) {
             // Move to right with current column width.
             childLeft += length;
           }
@@ -236,7 +236,6 @@ export class FlowLayout extends WrapLayoutBase {
           child.effectiveMarginRight;
         childHeight = length;
 
-        const isFirst = childLeft === paddingLeft;
         if (
           childLeft + childWidth > childrenWidth &&
           childTop + childHeight <= childrenHeight
@@ -244,7 +243,7 @@ export class FlowLayout extends WrapLayoutBase {
           // Move to left.
           childLeft = paddingLeft;
 
-          if (!isFirst) {
+          if (i > 0) {
             // Move to bottom with current row height.
             childTop += length;
           }
@@ -270,6 +269,8 @@ export class FlowLayout extends WrapLayoutBase {
         // Move next child Left position to right.
         childLeft += childWidth;
       }
+
+      i++;
     });
   }
 }
