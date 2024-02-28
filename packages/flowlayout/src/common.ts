@@ -18,12 +18,6 @@ export abstract class WrapLayoutBase extends LayoutBase {
 
 WrapLayoutBase.prototype.recycleNativeView = "auto";
 
-const converter = makeParser<CoreTypes.OrientationType>(
-  makeValidator<CoreTypes.OrientationType>(
-    CoreTypes.Orientation.horizontal,
-    CoreTypes.Orientation.vertical,
-  ),
-);
 export const orientationProperty = new Property<
   WrapLayoutBase,
   CoreTypes.OrientationType
@@ -31,6 +25,53 @@ export const orientationProperty = new Property<
   name: "orientation",
   defaultValue: CoreTypes.Orientation.horizontal,
   affectsLayout: __IOS__,
-  valueConverter: converter,
+  valueConverter: makeParser<CoreTypes.OrientationType>(
+    makeValidator<CoreTypes.OrientationType>(
+      CoreTypes.Orientation.horizontal,
+      CoreTypes.Orientation.vertical,
+    ),
+  ),
 });
 orientationProperty.register(WrapLayoutBase);
+
+/**
+ * For now, this is a simplification of `display`, supporting only `block` and
+ * `inline` (and thus only precomposed syntax).
+ * @see https://developer.mozilla.org/en-US/docs/Web/CSS/display
+ */
+export const displayProperty = new Property<WrapLayoutBase, string>({
+  name: "display",
+  defaultValue: "block",
+  affectsLayout: true,
+  valueConverter: makeParser<string>(
+    makeValidator<string>(
+      "block",
+      "flex",
+      "inline-block",
+      "inline-flex",
+      "inline",
+      "none",
+    ),
+  ),
+});
+orientationProperty.register(WrapLayoutBase);
+
+export function getBoxType(display: string): "inline" | "block" | "none" {
+  switch (display) {
+    case "block":
+    case "flex": {
+      return "block";
+    }
+    case "inline-block":
+    case "inline-flex":
+    case "inline": {
+      return "inline";
+    }
+    case "none": {
+      return "none";
+    }
+    default: {
+      throw new Error(`Unable to parse box type from display mode ${display}`);
+    }
+  }
+}

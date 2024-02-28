@@ -2,7 +2,7 @@
 import { View } from "@nativescript/core";
 import { layout } from "@nativescript/core/utils";
 
-import { WrapLayoutBase } from "./common";
+import { getBoxType, WrapLayoutBase } from "./common";
 
 export class FlowLayout extends WrapLayoutBase {
   private readonly _lengths = new Array<number>();
@@ -56,6 +56,7 @@ export class FlowLayout extends WrapLayoutBase {
 
     const isVertical = this.orientation === "vertical";
 
+    let prevChildIsBlock = false;
     this.eachLayoutChild((child, _last) => {
       const desiredSize = View.measureChild(
         this,
@@ -67,7 +68,7 @@ export class FlowLayout extends WrapLayoutBase {
       const childMeasuredHeight = desiredSize.measuredHeight;
 
       if (isVertical) {
-        if (childMeasuredHeight > remainingHeight) {
+        if (childMeasuredHeight > remainingHeight || prevChildIsBlock) {
           maxLength = Math.max(maxLength, measureHeight);
           measureHeight = childMeasuredHeight;
           remainingHeight = availableHeight - childMeasuredHeight;
@@ -77,7 +78,7 @@ export class FlowLayout extends WrapLayoutBase {
           measureHeight += childMeasuredHeight;
         }
       } else {
-        if (childMeasuredWidth > remainingWidth) {
+        if (childMeasuredWidth > remainingWidth || prevChildIsBlock) {
           maxLength = Math.max(maxLength, measureWidth);
           measureWidth = childMeasuredWidth;
           remainingWidth = availableWidth - childMeasuredWidth;
@@ -92,6 +93,12 @@ export class FlowLayout extends WrapLayoutBase {
         this._lengths[this._lengths.length - 1],
         isVertical ? childMeasuredWidth : childMeasuredHeight,
       );
+
+      // If the last-added child won't share its line with another child (is a
+      // block), make sure we account for that when adding the next child.
+      prevChildIsBlock =
+        getBoxType((child as unknown as { display: string }).display) ===
+        "block";
     });
 
     if (isVertical) {
