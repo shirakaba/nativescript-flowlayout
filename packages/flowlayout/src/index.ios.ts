@@ -5,6 +5,9 @@ import { layout } from "@nativescript/core/utils";
 import { getBoxType, WrapLayoutBase } from "./common";
 
 export class FlowLayout extends WrapLayoutBase {
+  /**
+   * The cross-axis lengths for each layout child
+   */
   private readonly _lengths = new Array<number>();
 
   onMeasure(widthMeasureSpec: number, heightMeasureSpec: number): void {
@@ -101,6 +104,15 @@ export class FlowLayout extends WrapLayoutBase {
         "block";
     });
 
+    // |....|
+    // |...|.|
+    // |...| ^---- maxLength
+    // |.|
+    //   ^-------- measureWidth
+    //
+    // maxLength is the width of the widest row
+    // measureWidth is the width up to the last child
+
     if (isVertical) {
       measureHeight = Math.max(maxLength, measureHeight);
       for (const value of this._lengths) {
@@ -146,6 +158,8 @@ export class FlowLayout extends WrapLayoutBase {
       bottom: number;
     } = this.getSafeAreaInsets();
 
+    // This layout method is `box-sizing: border-box`.
+
     const isVertical = this.orientation === "vertical";
     const paddingLeft =
       this.effectiveBorderLeftWidth + this.effectivePaddingLeft + insets.left;
@@ -167,20 +181,19 @@ export class FlowLayout extends WrapLayoutBase {
     let rowOrColumn = 0;
 
     this.eachLayoutChild((child, _last) => {
-      // Add margins because layoutChild will subtract them.
-      // * density converts them to device pixels.
-      let childHeight =
-        child.getMeasuredHeight() +
-        child.effectiveMarginTop +
-        child.effectiveMarginBottom;
-      let childWidth =
-        child.getMeasuredWidth() +
-        child.effectiveMarginLeft +
-        child.effectiveMarginRight;
-
       const length = this._lengths[rowOrColumn];
+      let childHeight: number;
+      let childWidth: number;
+
       if (isVertical) {
+        // Add margins because layoutChild will subtract them.
+        // * density converts them to device pixels.
+        childHeight =
+          child.getMeasuredHeight() +
+          child.effectiveMarginTop +
+          child.effectiveMarginBottom;
         childWidth = length;
+
         const isFirst = childTop === paddingTop;
         if (
           childTop + childHeight > childrenHeight &&
@@ -215,7 +228,14 @@ export class FlowLayout extends WrapLayoutBase {
         // Move next child Top position to bottom.
         childTop += childHeight;
       } else {
+        // Add margins because layoutChild will subtract them.
+        // * density converts them to device pixels.
+        childWidth =
+          child.getMeasuredWidth() +
+          child.effectiveMarginLeft +
+          child.effectiveMarginRight;
         childHeight = length;
+
         const isFirst = childLeft === paddingLeft;
         if (
           childLeft + childWidth > childrenWidth &&
