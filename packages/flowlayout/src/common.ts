@@ -36,7 +36,8 @@ orientationProperty.register(WrapLayoutBase);
 
 /**
  * For now, this is a simplification of `display`, supporting only `block` and
- * `inline` (and thus only precomposed syntax).
+ * `inline` (and thus only precomposed syntax). `display: none` is currently
+ * substituted by `visibility: collapse`.
  * @see https://developer.mozilla.org/en-US/docs/Web/CSS/display
  */
 export const displayProperty = new Property<WrapLayoutBase, string>({
@@ -50,13 +51,12 @@ export const displayProperty = new Property<WrapLayoutBase, string>({
       "inline-block",
       "inline-flex",
       "inline",
-      "none",
     ),
   ),
 });
 orientationProperty.register(WrapLayoutBase);
 
-export function getBoxType(display: string): "inline" | "block" | "none" {
+export function getBoxType(display: string): "inline" | "block" {
   switch (display) {
     case "block":
     case "flex": {
@@ -66,9 +66,6 @@ export function getBoxType(display: string): "inline" | "block" | "none" {
     case "inline-flex":
     case "inline": {
       return "inline";
-    }
-    case "none": {
-      return "none";
     }
     default: {
       throw new Error(`Unable to parse box type from display mode ${display}`);

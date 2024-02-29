@@ -61,6 +61,12 @@ export class FlowLayout extends WrapLayoutBase {
 
     let prevChildIsBlock = false;
     this.eachLayoutChild((child, _last) => {
+      // For now, `display: none` is substituted by `visibility: collapse`.
+      // eachLayoutChild() naturally skips the latter.
+      const childBoxType = getBoxType(
+        (child as unknown as { display: string }).display,
+      );
+
       const desiredSize = View.measureChild(
         this,
         child,
@@ -99,9 +105,7 @@ export class FlowLayout extends WrapLayoutBase {
 
       // If the last-added child won't share its line with another child (is a
       // block), make sure we account for that when adding the next child.
-      prevChildIsBlock =
-        getBoxType((child as unknown as { display: string }).display) ===
-        "block";
+      prevChildIsBlock = childBoxType === "block";
     });
 
     // |....|
