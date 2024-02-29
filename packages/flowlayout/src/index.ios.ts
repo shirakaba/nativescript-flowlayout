@@ -6,15 +6,17 @@ import { getBoxType, WrapLayoutBase } from "./common";
 
 export class FlowLayout extends WrapLayoutBase {
   /**
-   * The cross-axis lengths for each layout child
+   * The lengths along the block axis for each layout child.
+   * - For an inline orientation of "horizontal", this means the block heights;
+   * - For an inline orientation of "vertical", this means the block widths.
    */
-  private readonly _lengths = new Array<number>();
+  private readonly blockLengths = new Array<number>();
 
   onMeasure(widthMeasureSpec: number, heightMeasureSpec: number): void {
     super.onMeasure(widthMeasureSpec, heightMeasureSpec);
 
-    let measureWidth = 0;
-    let measureHeight = 0;
+    let measureInline = 0;
+    let measureBlock = 0;
 
     const width = layout.getMeasureSpecSize(widthMeasureSpec);
     const widthMode = layout.getMeasureSpecMode(widthMeasureSpec);
@@ -33,6 +35,8 @@ export class FlowLayout extends WrapLayoutBase {
       this.effectiveBorderTopWidth +
       this.effectiveBorderBottomWidth;
 
+    const isHorizontal = this.orientation === "horizontal";
+
     const availableWidth =
       widthMode === layout.UNSPECIFIED
         ? Number.MAX_VALUE
@@ -41,6 +45,7 @@ export class FlowLayout extends WrapLayoutBase {
       heightMode === layout.UNSPECIFIED
         ? Number.MAX_VALUE
         : height - verticalPaddingsAndMargins;
+    const availableInline = isHorizontal ? availableWidth : availableHeight;
 
     const childWidthMeasureSpec = getChildMeasureSpec(
       widthMode,
@@ -51,13 +56,10 @@ export class FlowLayout extends WrapLayoutBase {
       availableHeight,
     );
 
-    let remainingWidth = availableWidth;
-    let remainingHeight = availableHeight;
+    let remainingInlineLength = availableInline;
 
-    this._lengths.length = 0;
-    let maxLength = 0;
-
-    const isVertical = this.orientation === "vertical";
+    this.blockLengths.length = 0;
+    let maxInlineLength = 0;
 
     let prevChildIsBlock = false;
     this.eachLayoutChild((child, _last) => {
@@ -73,34 +75,30 @@ export class FlowLayout extends WrapLayoutBase {
         childWidthMeasureSpec,
         childHeightMeasureSpec,
       );
-      const childMeasuredWidth = desiredSize.measuredWidth;
-      const childMeasuredHeight = desiredSize.measuredHeight;
 
-      if (isVertical) {
-        if (childMeasuredHeight > remainingHeight || prevChildIsBlock) {
-          maxLength = Math.max(maxLength, measureHeight);
-          measureHeight = childMeasuredHeight;
-          remainingHeight = availableHeight - childMeasuredHeight;
-          this._lengths.push(childMeasuredWidth);
-        } else {
-          remainingHeight -= childMeasuredHeight;
-          measureHeight += childMeasuredHeight;
-        }
+      const childMeasuredInlineLength = isHorizontal
+        ? desiredSize.measuredWidth
+        : desiredSize.measuredHeight;
+      const childMeasuredBlockLength = isHorizontal
+        ? desiredSize.measuredHeight
+        : desiredSize.measuredWidth;
+
+      if (
+        childMeasuredInlineLength > remainingInlineLength ||
+        prevChildIsBlock
+      ) {
+        maxInlineLength = Math.max(maxInlineLength, measureInline);
+        measureInline = childMeasuredInlineLength;
+        remainingInlineLength = availableInline - childMeasuredInlineLength;
+        this.blockLengths.push(childMeasuredBlockLength);
       } else {
-        if (childMeasuredWidth > remainingWidth || prevChildIsBlock) {
-          maxLength = Math.max(maxLength, measureWidth);
-          measureWidth = childMeasuredWidth;
-          remainingWidth = availableWidth - childMeasuredWidth;
-          this._lengths.push(childMeasuredHeight);
-        } else {
-          remainingWidth -= childMeasuredWidth;
-          measureWidth += childMeasuredWidth;
-        }
+        remainingInlineLength -= childMeasuredInlineLength;
+        measureInline += childMeasuredInlineLength;
       }
 
-      this._lengths[this._lengths.length - 1] = Math.max(
-        this._lengths[this._lengths.length - 1],
-        isVertical ? childMeasuredWidth : childMeasuredHeight,
+      this.blockLengths[this.blockLengths.length - 1] = Math.max(
+        this.blockLengths[this.blockLengths.length - 1],
+        childMeasuredBlockLength,
       );
 
       // If the last-added child won't share its line with another child (is a
@@ -110,31 +108,35 @@ export class FlowLayout extends WrapLayoutBase {
 
     // |....|
     // |...|.|
-    // |...| ^---- maxLength
+    // |...| ^---- maxInlineLength
     // |.|
-    //   ^-------- measureWidth
+    //   ^-------- measureInline
     //
-    // maxLength is the width of the widest row
-    // measureWidth is the width up to the last child
+    // maxInlineLength is the width of the widest row
+    // measureInline is the width up to the last child
 
-    if (isVertical) {
-      measureHeight = Math.max(maxLength, measureHeight);
-      for (const value of this._lengths) {
-        measureWidth += value;
-      }
-    } else {
-      measureWidth = Math.max(maxLength, measureWidth);
-      for (const value of this._lengths) {
-        measureHeight += value;
-      }
+    measureInline = Math.max(maxInlineLength, measureInline);
+    for (const value of this.blockLengths) {
+      measureBlock += value;
     }
 
-    measureWidth += horizontalPaddingsAndMargins;
-    measureHeight += verticalPaddingsAndMargins;
+    let measureWidth: number;
+    let measureHeight: number;
+    if (isHorizontal) {
+      measureInline += horizontalPaddingsAndMargins;
+      measureBlock += verticalPaddingsAndMargins;
 
-    // Check against our minimum sizes
-    measureWidth = Math.max(measureWidth, this.effectiveMinWidth);
-    measureHeight = Math.max(measureHeight, this.effectiveMinHeight);
+      // Check against our minimum sizes
+      measureWidth = Math.max(measureInline, this.effectiveMinWidth);
+      measureHeight = Math.max(measureBlock, this.effectiveMinHeight);
+    } else {
+      measureInline += verticalPaddingsAndMargins;
+      measureBlock += horizontalPaddingsAndMargins;
+
+      // Check against our minimum sizes
+      measureWidth = Math.max(measureBlock, this.effectiveMinWidth);
+      measureHeight = Math.max(measureInline, this.effectiveMinHeight);
+    }
 
     const widthAndState = View.resolveSizeAndState(
       measureWidth,
@@ -182,11 +184,11 @@ export class FlowLayout extends WrapLayoutBase {
     let childTop = paddingTop;
     const childrenHeight = bottom - top - paddingBottom;
     const childrenWidth = right - left - paddingRight;
-    let rowOrColumn = 0;
+    let block = 0;
 
     let i = 0;
     this.eachLayoutChild((child, _last) => {
-      const length = this._lengths[rowOrColumn];
+      const blockLength = this.blockLengths[block];
       let childHeight: number;
       let childWidth: number;
 
@@ -197,7 +199,7 @@ export class FlowLayout extends WrapLayoutBase {
           child.getMeasuredHeight() +
           child.effectiveMarginTop +
           child.effectiveMarginBottom;
-        childWidth = length;
+        childWidth = blockLength;
 
         if (
           childTop + childHeight > childrenHeight &&
@@ -208,14 +210,14 @@ export class FlowLayout extends WrapLayoutBase {
 
           if (i > 0) {
             // Move to right with current column width.
-            childLeft += length;
+            childLeft += blockLength;
           }
 
           // Move to next column.
-          rowOrColumn++;
+          block++;
 
           // Take respective column width.
-          childWidth = this._lengths[rowOrColumn];
+          childWidth = this.blockLengths[block];
         }
 
         if (childLeft < childrenWidth && childTop < childrenHeight) {
@@ -238,7 +240,7 @@ export class FlowLayout extends WrapLayoutBase {
           child.getMeasuredWidth() +
           child.effectiveMarginLeft +
           child.effectiveMarginRight;
-        childHeight = length;
+        childHeight = blockLength;
 
         if (
           childLeft + childWidth > childrenWidth &&
@@ -249,14 +251,14 @@ export class FlowLayout extends WrapLayoutBase {
 
           if (i > 0) {
             // Move to bottom with current row height.
-            childTop += length;
+            childTop += blockLength;
           }
 
           // Move to next row.
-          rowOrColumn++;
+          block++;
 
           // Take respective row height.
-          childHeight = this._lengths[rowOrColumn];
+          childHeight = this.blockLengths[block];
         }
 
         if (childLeft < childrenWidth && childTop < childrenHeight) {
