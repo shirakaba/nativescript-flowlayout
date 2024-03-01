@@ -12,6 +12,9 @@ export class FlowLayout extends WrapLayoutBase {
    */
   private readonly blockLengths = new Array<number>();
 
+  // Called during View.prototype.measure(), presumably expected to itself call
+  // View.prototype.setMeasuredDimension() internally
+  // @nativescript/core/ui/core/view/index.ios.js
   onMeasure(widthMeasureSpec: number, heightMeasureSpec: number): void {
     super.onMeasure(widthMeasureSpec, heightMeasureSpec);
 
@@ -61,6 +64,27 @@ export class FlowLayout extends WrapLayoutBase {
     this.blockLengths.length = 0;
     let maxInlineLength = 0;
 
+    // blocks do not share any space (with previous or next siblings)
+    //
+    // The simplest approach is to establish a new row any time the inlines
+    // overflow or the previous child is a block.
+    //
+    // However, it does not handle cases like nesting blocks inside inlines:
+    // <p>A<a>B<p>C</p>D</a>E</p>
+    // Although such nesting is illegal, in practice, web renderers render:
+    // AB
+    // C
+    // DE
+    // https://webkit.org/blog/115/webcore-rendering-ii-blocks-and-inlines/
+    //
+    // It feels like legal nesting should be an upstream concern, mainly because
+    // we have to call measureChild() inside here, and we can't get a proper
+    // measurement for a subtree if it was allowed to get into an illegal state.
+    //
+    // > All in-flow children of a block flow must be blocks, or
+    // > all in-flow children of a block flow must be inlines.
+    // >
+    // > All in-flow children of an inline flow must be inlines.
     let prevChildIsBlock = false;
     this.eachLayoutChild((child, _last) => {
       // For now, `display: none` is substituted by `visibility: collapse`.
@@ -87,6 +111,11 @@ export class FlowLayout extends WrapLayoutBase {
         childMeasuredInlineLength > remainingInlineLength ||
         prevChildIsBlock
       ) {
+        // FIXME: support making a new row when the current child is block,
+        // unless there are no rows at all yet. May involve figuring out the
+        // purpose of the variables here (observing how they're used downstream)
+        // and deciding whether any of this if/else block needs to be broken up
+        // into preconditions.
         maxInlineLength = Math.max(maxInlineLength, measureInline);
         measureInline = childMeasuredInlineLength;
         remainingInlineLength = availableInline - childMeasuredInlineLength;
@@ -187,6 +216,8 @@ export class FlowLayout extends WrapLayoutBase {
     let block = 0;
 
     let i = 0;
+    // Determine the (incoming) origin of each layout child and lay it out if
+    // it's in the available area
     this.eachLayoutChild((child, _last) => {
       const blockLength = this.blockLengths[block];
       let childHeight: number;
@@ -240,17 +271,20 @@ export class FlowLayout extends WrapLayoutBase {
           child.getMeasuredWidth() +
           child.effectiveMarginLeft +
           child.effectiveMarginRight;
+        // length: the block (row) height
         childHeight = blockLength;
 
         if (
+          // If this child falls out of the available width (inline size),
           childLeft + childWidth > childrenWidth &&
+          // ... and yet it can fit within the available height (block size)
           childTop + childHeight <= childrenHeight
         ) {
-          // Move to left.
+          // Move it to the start of the block.
           childLeft = paddingLeft;
 
           if (i > 0) {
-            // Move to bottom with current row height.
+            // Move it down by a row (block)
             childTop += blockLength;
           }
 
@@ -261,6 +295,13 @@ export class FlowLayout extends WrapLayoutBase {
           childHeight = this.blockLengths[block];
         }
 
+        // If this child starts within the available width (inline size),
+        // ... and starts within the available height (block size)
+        // (i.e. has an origin within the available area)
+        //
+        // I'm not convinced this is right at all. We should lay things out even
+        // if the incoming position would be out of the content box, because we
+        // want to be able to support `overflow: visible`.
         if (childLeft < childrenWidth && childTop < childrenHeight) {
           View.layoutChild(
             this,
