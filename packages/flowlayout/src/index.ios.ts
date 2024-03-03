@@ -157,126 +157,40 @@ export class FlowLayout extends WrapLayoutBase {
   onLayout(left: number, top: number, right: number, bottom: number): void {
     super.onLayout(left, top, right, bottom);
 
-    const insets: {
-      left: number;
-      top: number;
-      right: number;
-      bottom: number;
-    } = this.getSafeAreaInsets();
-
-    // This layout method is `box-sizing: border-box`.
-
-    const isVertical = this.orientation === "vertical";
-    const paddingLeft =
-      this.effectiveBorderLeftWidth + this.effectivePaddingLeft + insets.left;
-    const paddingTop =
-      this.effectiveBorderTopWidth + this.effectivePaddingTop + insets.top;
-    const paddingRight =
-      this.effectiveBorderRightWidth +
-      this.effectivePaddingRight +
-      insets.right;
-    const paddingBottom =
-      this.effectiveBorderBottomWidth +
-      this.effectivePaddingBottom +
-      insets.bottom;
-
-    let childLeft = paddingLeft;
-    let childTop = paddingTop;
-    const childrenHeight = bottom - top - paddingBottom;
-    const childrenWidth = right - left - paddingRight;
-    let block = 0;
-
-    let i = 0;
+    const insets = this.getSafeAreaInsets();
     this.eachLayoutChild((child, _last) => {
-      const blockLength = this.blockLengths[block];
-      let childHeight: number;
-      let childWidth: number;
+      const childWidth = child.getMeasuredWidth();
+      const childHeight = child.getMeasuredHeight();
 
-      if (isVertical) {
-        // Add margins because layoutChild will subtract them.
-        // * density converts them to device pixels.
-        childHeight =
-          child.getMeasuredHeight() +
-          child.effectiveMarginTop +
-          child.effectiveMarginBottom;
-        childWidth = blockLength;
+      const childLeft =
+        this.effectiveBorderLeftWidth +
+        this.effectivePaddingLeft +
+        child.effectiveLeft +
+        insets.left;
+      const childTop =
+        this.effectiveBorderTopWidth +
+        this.effectivePaddingTop +
+        child.effectiveTop +
+        insets.top;
+      const childRight =
+        childLeft +
+        childWidth +
+        child.effectiveMarginLeft +
+        child.effectiveMarginRight;
+      const childBottom =
+        childTop +
+        childHeight +
+        child.effectiveMarginTop +
+        child.effectiveMarginBottom;
 
-        if (
-          childTop + childHeight > childrenHeight &&
-          childLeft + childWidth <= childrenWidth
-        ) {
-          // Move to top.
-          childTop = paddingTop;
-
-          if (i > 0) {
-            // Move to right with current column width.
-            childLeft += blockLength;
-          }
-
-          // Move to next column.
-          block++;
-
-          // Take respective column width.
-          childWidth = this.blockLengths[block];
-        }
-
-        if (childLeft < childrenWidth && childTop < childrenHeight) {
-          View.layoutChild(
-            this,
-            child,
-            childLeft,
-            childTop,
-            childLeft + childWidth,
-            childTop + childHeight,
-          );
-        }
-
-        // Move next child Top position to bottom.
-        childTop += childHeight;
-      } else {
-        // Add margins because layoutChild will subtract them.
-        // * density converts them to device pixels.
-        childWidth =
-          child.getMeasuredWidth() +
-          child.effectiveMarginLeft +
-          child.effectiveMarginRight;
-        childHeight = blockLength;
-
-        if (
-          childLeft + childWidth > childrenWidth &&
-          childTop + childHeight <= childrenHeight
-        ) {
-          // Move to left.
-          childLeft = paddingLeft;
-
-          if (i > 0) {
-            // Move to bottom with current row height.
-            childTop += blockLength;
-          }
-
-          // Move to next row.
-          block++;
-
-          // Take respective row height.
-          childHeight = this.blockLengths[block];
-        }
-
-        if (childLeft < childrenWidth && childTop < childrenHeight) {
-          View.layoutChild(
-            this,
-            child,
-            childLeft,
-            childTop,
-            childLeft + childWidth,
-            childTop + childHeight,
-          );
-        }
-
-        // Move next child Left position to right.
-        childLeft += childWidth;
-      }
-
-      i++;
+      View.layoutChild(
+        this,
+        child,
+        childLeft,
+        childTop,
+        childRight,
+        childBottom,
+      );
     });
   }
 }
