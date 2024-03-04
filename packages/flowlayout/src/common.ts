@@ -1,3 +1,4 @@
+import type { AddChildFromBuilder } from "@nativescript/core";
 import {
   CoreTypes,
   CSSType,
@@ -5,15 +6,64 @@ import {
   makeParser,
   makeValidator,
   Property,
+  View,
 } from "@nativescript/core";
 
+import { TextNode } from "./text-node";
+
 @CSSType("WrapLayout")
-export abstract class WrapLayoutBase extends LayoutBase {
+export abstract class WrapLayoutBase
+  extends LayoutBase
+  implements AddChildFromBuilder
+{
   declare orientation: CoreTypes.OrientationType;
   declare itemWidth: CoreTypes.LengthType;
   declare itemHeight: CoreTypes.LengthType;
   declare effectiveItemWidth: number;
   declare effectiveItemHeight: number;
+
+  private readonly _subViews = new Array<View | TextNode>();
+
+  // Implemented by LayoutBaseCommon
+  _addChildFromBuilder(name: string, value: unknown) {
+    if (value instanceof TextNode || value instanceof View) {
+      // @ts-expect-error TextNode should work fine.
+      this.addChild(value);
+    }
+  }
+
+  _registerLayoutChild(_child: View | TextNode): void {
+    // No-op
+  }
+
+  eachChildView(callback: (child: View) => boolean): void {
+    for (const child of this._subViews) {
+      if (!(child instanceof View)) {
+        continue;
+      }
+
+      if (!callback(child)) {
+        return;
+      }
+    }
+  }
+
+  eachLayoutChild(callback: (child: View, isLast: boolean) => void): void {
+    let lastChild: View | null = null;
+
+    for (const child of this._subViews) {
+      if (lastChild && !lastChild.isCollapsed) {
+        callback(lastChild, false);
+      }
+
+      // @ts-expect-error View should work fine.
+      lastChild = child;
+    }
+
+    if (lastChild && !lastChild.isCollapsed) {
+      callback(lastChild, true);
+    }
+  }
 }
 
 WrapLayoutBase.prototype.recycleNativeView = "auto";

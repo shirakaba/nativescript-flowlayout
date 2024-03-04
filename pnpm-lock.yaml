@@ -67,6 +67,9 @@ importers:
         specifier: ~8.6.0
         version: 8.6.2
     devDependencies:
+      '@nativescript/types-ios':
+        specifier: ^8.6.1
+        version: 8.6.1
       '@repo/tsconfig':
         specifier: workspace:^
         version: link:../tsconfig
