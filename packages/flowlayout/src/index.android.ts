@@ -1,3 +1,3 @@
-import { FlowLayoutCommon } from "./common";
+import { WrapLayoutBase } from "./common";
 
-export class FlowLayout extends FlowLayoutCommon {}
+export class FlowLayout extends WrapLayoutBase {}
