@@ -1,6 +1,5 @@
-import type { AddChildFromBuilder } from "@nativescript/core";
+import type { AddChildFromBuilder, CoreTypes } from "@nativescript/core";
 import {
-  CoreTypes,
   CSSType,
   LayoutBase,
   makeParser,
@@ -68,21 +67,21 @@ export abstract class WrapLayoutBase
 
 WrapLayoutBase.prototype.recycleNativeView = "auto";
 
-export const orientationProperty = new Property<
-  WrapLayoutBase,
-  CoreTypes.OrientationType
->({
-  name: "orientation",
-  defaultValue: CoreTypes.Orientation.horizontal,
-  affectsLayout: __IOS__,
-  valueConverter: makeParser<CoreTypes.OrientationType>(
-    makeValidator<CoreTypes.OrientationType>(
-      CoreTypes.Orientation.horizontal,
-      CoreTypes.Orientation.vertical,
-    ),
-  ),
-});
-orientationProperty.register(WrapLayoutBase);
+// export const orientationProperty = new Property<
+//   WrapLayoutBase,
+//   CoreTypes.OrientationType
+// >({
+//   name: "orientation",
+//   defaultValue: CoreTypes.Orientation.horizontal,
+//   affectsLayout: __IOS__,
+//   valueConverter: makeParser<CoreTypes.OrientationType>(
+//     makeValidator<CoreTypes.OrientationType>(
+//       CoreTypes.Orientation.horizontal,
+//       CoreTypes.Orientation.vertical,
+//     ),
+//   ),
+// });
+// orientationProperty.register(WrapLayoutBase);
 
 /**
  * For now, this is a simplification of `display`, supporting only `block` and
@@ -104,7 +103,7 @@ export const displayProperty = new Property<WrapLayoutBase, string>({
     ),
   ),
 });
-orientationProperty.register(WrapLayoutBase);
+displayProperty.register(WrapLayoutBase);
 
 export function getBoxType(display: string): "inline" | "block" {
   switch (display) {
