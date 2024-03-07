@@ -48,6 +48,7 @@ export abstract class WrapLayoutBase
   }
 
   eachLayoutChild(callback: (child: View, isLast: boolean) => void): void {
+    console.log(`eachLayoutChild ${this._subViews.length}`);
     let lastChild: View | null = null;
 
     for (const child of this._subViews) {

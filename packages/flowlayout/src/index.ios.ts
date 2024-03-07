@@ -75,6 +75,10 @@ export class FlowLayout extends WrapLayoutBase implements AddChildFromBuilder {
         ? Number.MAX_VALUE
         : height - verticalPaddingsAndMargins;
 
+    console.log(
+      `Got width ${width} and mode ${widthMode}, with availableWidth ${availableWidth}`,
+    );
+
     this.eachLayoutChild((child: View | TextNode, _last) => {
       // TODO: need to figure out the width of the contents. This could be
       // simple if we call this a block (it'd be 100% of its parent), but
@@ -96,6 +100,7 @@ export class FlowLayout extends WrapLayoutBase implements AddChildFromBuilder {
       // meaningful, and top/left/right/bottom are still ignored). Margin and
       // padding are respected whether inline or inline-block.
 
+      // The available width is anything up to the full width of the parent.
       const childWidthMeasureSpec = getChildMeasureSpec(
         widthMode,
         availableWidth,
@@ -122,6 +127,10 @@ export class FlowLayout extends WrapLayoutBase implements AddChildFromBuilder {
         childHeightMeasureSpec,
       );
 
+      console.log(
+        `Got View child measuredWidth ${measuredWidth}, given and child width ${layout.getMeasureSpecSize(childWidthMeasureSpec)} and mode ${layout.getMeasureSpecMode(childWidthMeasureSpec)}`,
+      );
+
       const attachment = NSTextAttachment.new();
       attachment.bounds = CGRectMake(0, 0, measuredWidth, measuredHeight);
       attachment.image = sharedPlaceholderImage;
@@ -131,6 +140,10 @@ export class FlowLayout extends WrapLayoutBase implements AddChildFromBuilder {
       );
       // TODO: reconcile attributedString any time onMeasure() is called again
     });
+
+    console.log(
+      `layout.toDeviceIndependentPixels(${availableWidth}): ${layout.toDeviceIndependentPixels(availableWidth)}`,
+    );
 
     const boundingRectSize =
       this.attributedString!.boundingRectWithSizeOptionsContext(
@@ -143,7 +156,6 @@ export class FlowLayout extends WrapLayoutBase implements AddChildFromBuilder {
         // @ts-expect-error is actually nullable
         null,
       );
-    console.log(`Got boundingRectSize`, boundingRectSize);
 
     const measureWidth = Math.max(
       boundingRectSize.size.width,
@@ -152,6 +164,10 @@ export class FlowLayout extends WrapLayoutBase implements AddChildFromBuilder {
     const measureHeight = Math.max(
       boundingRectSize.size.height,
       this.effectiveMinHeight,
+    );
+
+    console.log(
+      `Got boundingRectSize ${boundingRectSize.size.width} x ${boundingRectSize.size.height}; measureSize ${measureWidth} x ${measureHeight}`,
     );
 
     const widthAndState = View.resolveSizeAndState(
