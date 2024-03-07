@@ -21,6 +21,7 @@ export class FlowLayout extends WrapLayoutBase implements AddChildFromBuilder {
 
   private attributedString?: NSMutableAttributedString;
   private textStorage?: NSTextStorage;
+  private layoutManager?: NSLayoutManager;
 
   createNativeView() {
     if (!FlowLayout.sharedPlaceholderImage) {
@@ -40,6 +41,13 @@ export class FlowLayout extends WrapLayoutBase implements AddChildFromBuilder {
     this.textStorage = NSTextStorage.alloc().initWithAttributedString(
       this.attributedString,
     );
+    this.layoutManager = NSLayoutManager.new();
+    this.layoutManager.usesFontLeading = false;
+
+    this.textStorage!.addLayoutManager(this.layoutManager);
+    console.log(`textStorage BEFORE "${this.textStorage!.string}"`);
+
+    this.textStorage!.beginEditing();
 
     const sharedPlaceholderImage = FlowLayout.sharedPlaceholderImage;
     if (!sharedPlaceholderImage) {
@@ -183,6 +191,13 @@ export class FlowLayout extends WrapLayoutBase implements AddChildFromBuilder {
       0,
     );
 
+    // FIXME: seems we need to set the same attributed string again to refresh
+    // contents (otherwise this.textStorage.string is still empty-string)
+    this.textStorage!.setAttributedString(this.attributedString!);
+    console.log(`textStorage AFTER "${this.textStorage!.string}"`);
+
+    this.textStorage!.endEditing();
+
     this.setMeasuredDimension(widthAndState, heightAndState);
   }
 
@@ -233,11 +248,6 @@ export class FlowLayout extends WrapLayoutBase implements AddChildFromBuilder {
       );
     });
 
-    const layoutManager = NSLayoutManager.new();
-    layoutManager.usesFontLeading = false;
-
-    this.textStorage!.addLayoutManager(layoutManager);
-
     // Can only set size at init time, so can't reuse textContainer.
     const textContainer = NSTextContainer.alloc().initWithSize(
       CGSizeMake(this.effectiveWidth, this.effectiveHeight),
@@ -248,17 +258,17 @@ export class FlowLayout extends WrapLayoutBase implements AddChildFromBuilder {
     textContainer.lineBreakMode = NSLineBreakMode.ByClipping;
 
     // Set this new textContainer as the layoutManager's only textContainer.
-    const textContainers = layoutManager.textContainers;
+    const textContainers = this.layoutManager!.textContainers;
     while (textContainers.count > 0) {
-      layoutManager.removeTextContainerAtIndex(0);
+      this.layoutManager!.removeTextContainerAtIndex(0);
     }
-    layoutManager.addTextContainer(textContainer);
+    this.layoutManager!.addTextContainer(textContainer);
 
     // TODO: do a partial layout rather than a full layout
     // TODO: use a cached layout if the text hasn't changed
     // TODO: perform layout during onLayout() instead of onMeasure()
     const fullRange = { location: 0, length: this.textStorage!.length };
-    layoutManager.ensureLayoutForCharacterRange(fullRange);
+    this.layoutManager!.ensureLayoutForCharacterRange(fullRange);
 
     // Iterate through the glyphs and check for NSTextAttachment
     this.textStorage!.enumerateAttributeInRangeOptionsUsingBlock(
@@ -272,7 +282,7 @@ export class FlowLayout extends WrapLayoutBase implements AddChildFromBuilder {
         }
         // Now you have the NSTextAttachment and its position information
         const attachmentRect =
-          layoutManager.boundingRectForGlyphRangeInTextContainer(
+          this.layoutManager!.boundingRectForGlyphRangeInTextContainer(
             range,
             textContainer,
           );
@@ -283,6 +293,8 @@ export class FlowLayout extends WrapLayoutBase implements AddChildFromBuilder {
         );
       },
     );
+
+    // TODO: render each text node into its appropriate position
   }
 }
 
