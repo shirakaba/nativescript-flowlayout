@@ -134,7 +134,10 @@ export class FlowLayout extends WrapLayoutBase implements AddChildFromBuilder {
 
     const boundingRectSize =
       this.attributedString!.boundingRectWithSizeOptionsContext(
-        { width: availableWidth, height: availableHeight },
+        {
+          width: layout.toDeviceIndependentPixels(availableWidth),
+          height: layout.toDeviceIndependentPixels(availableHeight),
+        },
         NSStringDrawingOptions.UsesLineFragmentOrigin |
           NSStringDrawingOptions.UsesFontLeading,
         // @ts-expect-error is actually nullable
