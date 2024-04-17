@@ -13,5 +13,7 @@ module.exports = {
   // ["/**/node_modules/*", ".*", "!.eslintrc.*", "!../"]
   // https://github.com/eslint/eslintrc/blob/01db002fdc8d6c9df3a922f701fc626da342cb97/lib/config-array/ignore-pattern.js#L113-L114
   ignorePatterns: ["/hooks"],
-  rules: {},
+  rules: {
+    "@typescript-eslint/triple-slash-reference": "off",
+  },
 };

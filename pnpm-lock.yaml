@@ -33,6 +33,9 @@ importers:
       '@nativescript/types':
         specifier: ~8.6.0
         version: 8.6.1
+      '@nativescript/types-ios':
+        specifier: ^8.7.0
+        version: 8.7.0
       '@nativescript/webpack':
         specifier: ~5.0.18
         version: 5.0.18(typescript@5.2.2)
@@ -399,6 +402,10 @@ packages:
 
   /@nativescript/types-ios@8.6.1:
     resolution: {integrity: sha512-g2NsJbqy72+HlPsczUp1oE+PPXgAZh8/Ww7uc6qoCt2w2fvyfHx18hMPdcICnzclRZ7Cn7Ekf8HrWSaJFbfqiA==}
+    dev: true
+
+  /@nativescript/types-ios@8.7.0:
+    resolution: {integrity: sha512-g/tQY67SvIvPex35+Pi5OsNBLmevdYGMJKtCdPRMVcRDJOCNdSMVPkuQ7v8B6IQG7oHEJ6njACAY+jaFw1d58w==}
     dev: true
 
   /@nativescript/types@8.6.1:

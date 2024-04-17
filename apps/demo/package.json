@@ -10,6 +10,7 @@
   },
   "devDependencies": {
     "@nativescript/types": "~8.6.0",
+    "@nativescript/types-ios": "^8.7.0",
     "@nativescript/webpack": "~5.0.18",
     "typescript": "~5.2.0"
   }
