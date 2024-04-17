@@ -109,22 +109,27 @@ export function navigatingTo(args: EventData) {
       [NSForegroundColorAttributeName]:
         i % 2 === 0 ? UIColor.brownColor : UIColor.blueColor,
     } as unknown as NSDictionary<string, any>);
-    inline1.addTextNode(
-      new TextNode(
-        "lorem ipsum dolor sit amet\nlorem ipsum dolor sit amet\nlorem ipsum dolor sit amet\n",
-      ),
-    );
+    inline1.addTextNode(new TextNode("lorem ipsum dolor sit amet, "));
     block.addInline(inline1);
   }
 
   content.addEventListener("loaded", () => {
     console.log("loaded!");
-    content.nativeView.addSubview(
-      UITextView.alloc().initWithFrameTextContainer(
-        CGRectMake(0, 0, 394, 760),
-        block.textContainer,
-      ),
+    const tv = UITextView.alloc().initWithFrameTextContainer(
+      CGRectMake(0, 0, 394, 760),
+      block.textContainer,
     );
+    content.nativeView.addSubview(tv);
+    // Unfortunately, on first render, it doesn't wrap no matter what width you
+    // set the UITextView's frame to to. But setting any distinct frame
+    // post-render *will* cause a reflow. Maybe it's a complication of using
+    // UITextView instead of rendering into UIView. Starting to feel it's all
+    // too complicated.
+
+    // tv.frame can be updated at any time and causes reflow.
+    // setTimeout(() => {
+    //   tv.frame = CGRectMake(0, 0, 100, 760);
+    // }, 1000);
   });
 
   // block.
