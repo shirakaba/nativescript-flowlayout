@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /// <reference types="@nativescript/types-ios" />
 
@@ -5,79 +6,8 @@ import type { EventData, Page } from "@nativescript/core";
 
 import { HelloWorldModel } from "./main-view-model";
 
-// Just crashes
-// //
-// // https://docs.nativescript.org/guide/extending-classes-and-conforming-to-protocols-ios
-// @NativeClass()
-// class TKDHighlightingTextStorage extends NSTextStorage {
-//   private readonly _imp = NSMutableAttributedString.new();
+// https://github.com/objcio/issue-5-textkit/tree/master/TextKitDemo
 
-//   // init() {
-//   //   const self = super.init() ?? null;
-//   //   if (self) {
-//   //     // The base class initialized successfully
-//   //     console.log("Initialized with self", self);
-//   //   }
-//   //   console.log("this._imp:", this._imp);
-//   //   return self;
-//   // }
-
-//   // // @ts-expect-error whatever
-//   // string() {
-//   //   return this._imp.string;
-//   // }
-
-//   attributesAtIndexEffectiveRange(
-//     location: number,
-//     range: interop.Pointer | interop.Reference<NSRange>,
-//   ): NSDictionary<string, any> {
-//     return this._imp.attributesAtIndexEffectiveRange(location, range);
-//   }
-
-//   replaceCharactersInRangeWithString(range: NSRange, str: string): void {
-//     this._imp.replaceCharactersInRangeWithString(range, str);
-//     // this.edited
-//   }
-
-//   setAttributesRange(attrs: NSDictionary<string, any>, range: NSRange): void {
-//     this._imp.setAttributesRange(attrs, range);
-//   }
-
-//   // A selector will be exposed so it can be called from native.
-//   // static ObjCExposedMethods = {
-//   //   "attributesAtIndex:effectiveRange:": {
-//   //     returns: interop.types.id,
-//   //     params: [interop.types.uint64, interop.Pointer],
-//   //   },
-//   //   "replaceCharactersInRange:withString:": {
-//   //     returns: interop.types.void,
-//   //     params: [NSRange, interop.types.id],
-//   //   },
-//   //   "setAttributes:range:": {
-//   //     returns: interop.types.void,
-//   //     params: [interop.types.id, interop.Reference<NSRange>],
-//   //   },
-//   //   string: {
-//   //     returns: interop.types.id,
-//   //     params: [],
-//   //   },
-//   // };
-// }
-
-export function navigatingTo(args: EventData) {
-  const page = <Page>args.object;
-  page.bindingContext = new HelloWorldModel();
-
-  const content = page.content;
-  console.log(content);
-  console.log(TKDHighlightingTextStorage.new());
-
-  // CoreText came with macOS Cocoa; TextKit 1 and TextKit 2 came with iOS.
-  // https://www.objc.io/issues/5-ios7/getting-to-know-textkit/
-  // https://developer.apple.com/library/archive/documentation/Cocoa/Conceptual/TextLayout/TextLayout.html#//apple_ref/doc/uid/10000158i
-}
-
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 class Block {
   // One textStorage can hold multiple layoutManagers.
   //
@@ -98,4 +28,22 @@ class Block {
     this.textStorage.addLayoutManager(this.layoutManager);
     this.layoutManager.addTextContainer(this.textContainer);
   }
+}
+
+export function navigatingTo(args: EventData) {
+  const page = <Page>args.object;
+  page.bindingContext = new HelloWorldModel();
+
+  const content = page.content;
+  console.log(content);
+  console.log(new Block());
+
+  // @ts-ignore
+  console.log(JBBlock.new());
+  // @ts-ignore
+  console.log(JBTextStorage.new());
+
+  // CoreText came with macOS Cocoa; TextKit 1 and TextKit 2 came with iOS.
+  // https://www.objc.io/issues/5-ios7/getting-to-know-textkit/
+  // https://developer.apple.com/library/archive/documentation/Cocoa/Conceptual/TextLayout/TextLayout.html#//apple_ref/doc/uid/10000158i
 }
