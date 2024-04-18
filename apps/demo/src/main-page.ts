@@ -115,20 +115,29 @@ export function navigatingTo(args: EventData) {
 
   content.addEventListener("loaded", () => {
     console.log("loaded!");
+    const rect = CGRectMake(0, 0, 394, 760);
+    block.textContainer.size = rect.size;
     const tv = UITextView.alloc().initWithFrameTextContainer(
-      CGRectMake(0, 0, 394, 760),
+      rect,
       block.textContainer,
     );
+    console.log(
+      "textContainer.size",
+      tv.textContainer.size.width,
+      tv.textContainer.size.height,
+    );
     content.nativeView.addSubview(tv);
-    // Unfortunately, on first render, it doesn't wrap no matter what width you
-    // set the UITextView's frame to to. But setting any distinct frame
-    // post-render *will* cause a reflow. Maybe it's a complication of using
-    // UITextView instead of rendering into UIView. Starting to feel it's all
-    // too complicated.
 
-    // tv.frame can be updated at any time and causes reflow.
+    // tv.frame can be updated at any time and causes reflow. Strangely, setting
+    // the tv.frame updates the width of the text container as specified, but
+    // updates the height to max_int or something.
     // setTimeout(() => {
     //   tv.frame = CGRectMake(0, 0, 100, 760);
+    //   console.log(
+    //     "textContainer.size",
+    //     tv.textContainer.size.width,
+    //     tv.textContainer.size.height,
+    //   );
     // }, 1000);
   });
 
