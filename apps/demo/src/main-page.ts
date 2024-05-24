@@ -6,6 +6,8 @@ import type { EventData, Page } from "@nativescript/core";
 
 import { HelloWorldModel } from "./main-view-model";
 
+const recycledEmptyObject = Object.freeze({});
+
 // CoreText came with macOS Cocoa; TextKit 1 and TextKit 2 came with iOS.
 // https://github.com/objcio/issue-5-textkit/tree/master/TextKitDemo
 // https://news.ycombinator.com/item?id=39603087
@@ -67,27 +69,21 @@ class Block {
     }
   }
 
+  /**
+   * To be updated, by the parent, upon insertion and removal.
+   */
+  parent: Block | null = null;
+
   private inlines = new Array<Inline>();
 
   addInline(inline: Inline) {
     for (const childNode of inline.getChildNodes()) {
       if (childNode instanceof TextNode) {
-        const placeholderString = NSAttributedString.alloc();
-
-        // Checking this can save us an unnecessary allocation.
-        const hasAttributes =
-          (this.attributes && Object.keys(this.attributes).length) ||
-          (inline.attributes && Object.keys(inline.attributes).length);
-
-        // Here we take effort to set the attributes at construction time.
-        const attributedString = hasAttributes
-          ? placeholderString.initWithStringAttributes(childNode.data, {
-              ...this.attributes,
-              ...inline.attributes,
-            } as unknown as NSDictionary<string, any>)
-          : placeholderString.initWithString(childNode.data);
-
-        this.textStorage.appendAttributedString(attributedString);
+        // Update attributes (i.e. resolve the style cascade) before insertion
+        // into the native tree.
+        console.log(`[Block] updating attributes for "${childNode.data}"`);
+        childNode.updateAttributes();
+        this.textStorage.appendAttributedString(childNode.attributedString);
         continue;
       }
 
@@ -95,6 +91,16 @@ class Block {
     }
 
     this.inlines.push(inline);
+    inline.parent = this;
+  }
+
+  removeInline(inline: Inline) {
+    const index = this.inlines.indexOf(inline);
+    if (index === -1) {
+      return;
+    }
+    this.inlines.splice(index, 1);
+    inline.parent = null;
   }
 }
 
@@ -107,6 +113,80 @@ class TextNode {
     return this._data;
   }
 
+  /**
+   * To be updated, by the parent, upon insertion and removal.
+   */
+  parent: Inline | null = null;
+
+  private _attributedString?: NSMutableAttributedString;
+  get attributedString() {
+    if (!this._attributedString) {
+      this._attributedString = NSMutableAttributedString.alloc().initWithString(
+        this.data,
+      );
+    }
+    return this._attributedString;
+  }
+
+  /**
+   * Walks up the DOM parents to resolve the attributes to apply.
+   */
+  updateAttributes() {
+    let attributes: Record<string, unknown> | undefined;
+
+    for (const ancestor of this.climbAncestors()) {
+      if (!ancestor.attributes) {
+        continue;
+      }
+
+      for (const key in ancestor.attributes) {
+        // A child already has the attribute, so disregard the parent's value.
+        if (attributes?.[key]) {
+          continue;
+        }
+
+        if (!attributes) {
+          attributes = {};
+        }
+        attributes[key] = ancestor.attributes[key];
+      }
+    }
+
+    this.setAttributes(attributes ?? recycledEmptyObject);
+  }
+
+  private *climbAncestors() {
+    let parent: Inline | Block | null = this.parent;
+    while (parent) {
+      yield parent;
+      parent = parent.parent;
+    }
+  }
+
+  private setAttributes(
+    attributes: NSDictionary<string, unknown> | Record<string, unknown>,
+  ) {
+    console.log(
+      `[TextNode.setAttributes] 0->${this.attributedString.length}`,
+      attributes,
+    );
+    this.attributedString.setAttributesRange(
+      attributes as unknown as NSDictionary<string, unknown>,
+      {
+        location: 0,
+        length: this.attributedString.length,
+      },
+    );
+
+    console.log(
+      "Resulting attributes of TextNode",
+      this.attributedString.attributesAtIndexEffectiveRange(
+        0,
+        new interop.Pointer(),
+      ),
+    );
+  }
+
   appendData(data: string) {
     this._data += data;
     // TODO: inform parents
@@ -115,6 +195,10 @@ class TextNode {
 
 class Inline {
   private _childNodes = new Array<TextNode | Inline>();
+  /**
+   * To be updated, by the parent, upon insertion and removal.
+   */
+  parent: Block | Inline | null = null;
 
   *getChildNodes() {
     for (const childNode of this._childNodes) {
@@ -124,9 +208,27 @@ class Inline {
 
   addTextNode(textNode: TextNode) {
     this._childNodes.push(textNode);
+    textNode.parent = this;
+  }
+  removeTextNode(textNode: TextNode) {
+    const index = this._childNodes.indexOf(textNode);
+    if (index === -1) {
+      return;
+    }
+    this._childNodes.splice(index, 1);
+    textNode.parent = null;
   }
   addInline(inline: Inline) {
     this._childNodes.push(inline);
+    inline.parent = this;
+  }
+  removeInline(inline: Inline) {
+    const index = this._childNodes.indexOf(inline);
+    if (index === -1) {
+      return;
+    }
+    this._childNodes.splice(index, 1);
+    inline.parent = null;
   }
   attributes?: Record<string, unknown>;
   setAttribute(key: string, value: unknown) {
@@ -138,12 +240,13 @@ class Inline {
     // Iterate over all inlines and cascade styles down to descendants (allowing
     // clobbering by more specific styles).
     for (const childNode of this.getChildNodes()) {
-      if (childNode instanceof Inline) {
-        childNode.setAttribute(key, value);
+      if (childNode instanceof TextNode) {
+        console.log(`[Inline] updating attributes for "${childNode.data}"`);
+        childNode.updateAttributes();
         continue;
       }
 
-      // TODO: handle TextNode. Should we call up to the containing Block?
+      childNode.setAttribute(key, value);
     }
   }
   deleteAttribute(key: string) {
@@ -153,12 +256,12 @@ class Inline {
     delete this.attributes[key];
 
     for (const childNode of this.getChildNodes()) {
-      if (childNode instanceof Inline) {
-        childNode.deleteAttribute(key);
+      if (childNode instanceof TextNode) {
+        childNode.updateAttributes();
         continue;
       }
 
-      // TODO: handle TextNode. Should we call up to the containing Block?
+      childNode.deleteAttribute(key);
     }
   }
 }
@@ -174,13 +277,17 @@ export function navigatingTo(args: EventData) {
 
   for (let i = 0; i < 3; i++) {
     const inline = new Inline();
-    inline.addTextNode(new TextNode("lorem ipsum dolor sit amet, "));
+    inline.addTextNode(new TextNode(`[${i}] lorem ipsum dolor sit amet, `));
     block.addInline(inline);
     inline.setAttribute(
       NSForegroundColorAttributeName,
       i % 2 === 0 ? UIColor.brownColor : UIColor.blueColor,
     );
   }
+
+  // No idea why attribute-setting is failing to be reflected visually, beyond
+  // the fact that we've moved from ready-initialized NSAttributedStrings to
+  // setting attributes dynamically on NSMutableAttributedStrings.
 
   content.addEventListener("loaded", () => {
     console.log("loaded!");
