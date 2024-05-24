@@ -18,6 +18,11 @@ class Block {
   // Allows multiple visual representations of the same text that can be placed
   // and sized independently. Any edit in one such representation will reflect
   // in the others.
+  //
+  // NSTextStorage extends NSAttributedString, so you can call
+  // initWithStringAttributes. However, the attributes specified apply only to
+  // that initial string, and do not cascade to subsequently appended
+  // attributed strings.
   private readonly textStorage = NSTextStorage.new();
 
   // One layoutManager can hold multiple textContainers.
@@ -33,30 +38,60 @@ class Block {
     this.layoutManager.addTextContainer(this.textContainer);
   }
 
-  private inlines = new Array<Inline>();
-
-  private addTextNodeOrInline(
-    childNode: TextNode | Inline,
-    attributes: NSDictionary<string, any>,
-  ) {
-    if (childNode instanceof TextNode) {
-      this.textStorage.appendAttributedString(
-        NSAttributedString.alloc().initWithStringAttributes(
-          childNode.text,
-          attributes,
-        ),
-      );
-      return;
+  attributes?: Record<string, unknown>;
+  setAttribute(key: string, value: unknown) {
+    if (!this.attributes) {
+      this.attributes = {};
     }
+    this.attributes[key] = value;
 
-    for (const grandChildNode of childNode.getChildNodes()) {
-      this.addTextNodeOrInline(grandChildNode, attributes);
+    // Iterate over all inlines and cascade styles down to descendants (allowing
+    // clobbering by more specific styles).
+    //
+    // Alternatively, we could do this without referring to the JS model at all
+    // - we could just iterate through all the attributed string children
+    // directly, setting the attribute only if it's missing.
+    for (const inline of this.inlines) {
+      inline.setAttribute(key, value);
     }
   }
 
+  deleteAttribute(key: string) {
+    if (!this.attributes) {
+      return;
+    }
+    delete this.attributes[key];
+
+    for (const inline of this.inlines) {
+      inline.deleteAttribute(key);
+    }
+  }
+
+  private inlines = new Array<Inline>();
+
   addInline(inline: Inline) {
     for (const childNode of inline.getChildNodes()) {
-      this.addTextNodeOrInline(childNode, inline.attributes);
+      if (childNode instanceof TextNode) {
+        const placeholderString = NSAttributedString.alloc();
+
+        // Checking this can save us an unnecessary allocation.
+        const hasAttributes =
+          (this.attributes && Object.keys(this.attributes).length) ||
+          (inline.attributes && Object.keys(inline.attributes).length);
+
+        // Here we take effort to set the attributes at construction time.
+        const attributedString = hasAttributes
+          ? placeholderString.initWithStringAttributes(childNode.data, {
+              ...this.attributes,
+              ...inline.attributes,
+            } as unknown as NSDictionary<string, any>)
+          : placeholderString.initWithString(childNode.data);
+
+        this.textStorage.appendAttributedString(attributedString);
+        continue;
+      }
+
+      this.addInline(childNode);
     }
 
     this.inlines.push(inline);
@@ -64,15 +99,22 @@ class Block {
 }
 
 class TextNode {
-  constructor(public readonly text: string) {}
+  private _data: string;
+  constructor(data = "") {
+    this._data = data;
+  }
+  get data() {
+    return this._data;
+  }
+
+  appendData(data: string) {
+    this._data += data;
+    // TODO: inform parents
+  }
 }
 
 class Inline {
   private _childNodes = new Array<TextNode | Inline>();
-
-  constructor(readonly attributes: NSDictionary<string, any>) {
-    //
-  }
 
   *getChildNodes() {
     for (const childNode of this._childNodes) {
@@ -86,6 +128,39 @@ class Inline {
   addInline(inline: Inline) {
     this._childNodes.push(inline);
   }
+  attributes?: Record<string, unknown>;
+  setAttribute(key: string, value: unknown) {
+    if (!this.attributes) {
+      this.attributes = {};
+    }
+    this.attributes[key] = value;
+
+    // Iterate over all inlines and cascade styles down to descendants (allowing
+    // clobbering by more specific styles).
+    for (const childNode of this.getChildNodes()) {
+      if (childNode instanceof Inline) {
+        childNode.setAttribute(key, value);
+        continue;
+      }
+
+      // TODO: handle TextNode. Should we call up to the containing Block?
+    }
+  }
+  deleteAttribute(key: string) {
+    if (!this.attributes) {
+      return;
+    }
+    delete this.attributes[key];
+
+    for (const childNode of this.getChildNodes()) {
+      if (childNode instanceof Inline) {
+        childNode.deleteAttribute(key);
+        continue;
+      }
+
+      // TODO: handle TextNode. Should we call up to the containing Block?
+    }
+  }
 }
 
 export function navigatingTo(args: EventData) {
@@ -95,22 +170,16 @@ export function navigatingTo(args: EventData) {
   const content = page.content;
   console.log(content);
   const block = new Block();
+  block.setAttribute(NSUnderlineStyleAttributeName, NSUnderlineStyle.Single);
 
-  // I'm currently unclear whether attributes cascade from parent
-  // NSAttributedStrings to child ones.
   for (let i = 0; i < 3; i++) {
-    // const dict = NSMutableDictionary.alloc().init();
-    // dict.setValueForKey(
-    //   i % 2 === 0 ? UIColor.brownColor : UIColor.blueColor,
-    //   NSForegroundColorAttributeName,
-    // );
-
-    const inline1 = new Inline({
-      [NSForegroundColorAttributeName]:
-        i % 2 === 0 ? UIColor.brownColor : UIColor.blueColor,
-    } as unknown as NSDictionary<string, any>);
-    inline1.addTextNode(new TextNode("lorem ipsum dolor sit amet, "));
-    block.addInline(inline1);
+    const inline = new Inline();
+    inline.addTextNode(new TextNode("lorem ipsum dolor sit amet, "));
+    block.addInline(inline);
+    inline.setAttribute(
+      NSForegroundColorAttributeName,
+      i % 2 === 0 ? UIColor.brownColor : UIColor.blueColor,
+    );
   }
 
   content.addEventListener("loaded", () => {
@@ -140,6 +209,4 @@ export function navigatingTo(args: EventData) {
     //   );
     // }, 1000);
   });
-
-  // block.
 }
