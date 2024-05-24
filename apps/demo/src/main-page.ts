@@ -172,10 +172,8 @@ class TextNode {
     );
     this.attributedString.setAttributesRange(
       attributes as unknown as NSDictionary<string, unknown>,
-      {
-        location: 0,
-        length: this.attributedString.length,
-      },
+      // @ts-ignore missing from typings, somehow
+      NSMakeRange(0, this.attributedString.length),
     );
 
     console.log(
