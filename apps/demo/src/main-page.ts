@@ -3,6 +3,7 @@
 /// <reference types="@nativescript/types-ios" />
 
 import type { EventData, Page } from "@nativescript/core";
+import { dataSerialize } from "@nativescript/core/utils/native-helper.ios";
 
 import { HelloWorldModel } from "./main-view-model";
 
@@ -86,7 +87,10 @@ class Block {
       if (childNode instanceof TextNode) {
         // Update attributes (i.e. resolve the style cascade) before insertion
         // into the native tree.
-        console.log(`[Block] updating attributes for "${childNode.data}"`);
+        console.log(
+          `[Block] updating attributes for "${childNode.data}". Parent is set: ${childNode.parent === inline}; Grandparent is set: ${inline.parent === this}`,
+          dataSerialize(this.attributes),
+        );
         childNode.updateAttributes();
         this.textStorage.appendAttributedString(childNode.attributedString);
         continue;
@@ -170,7 +174,7 @@ class TextNode {
   ) {
     console.log(
       `[TextNode.setAttributes] 0->${this.attributedString.length}`,
-      attributes,
+      dataSerialize(attributes),
     );
     this.attributedString.setAttributesRange(
       attributes as unknown as NSDictionary<string, unknown>,
@@ -241,7 +245,10 @@ class Inline {
     // clobbering by more specific styles).
     for (const childNode of this.getChildNodes()) {
       if (childNode instanceof TextNode) {
-        console.log(`[Inline] updating attributes for "${childNode.data}"`);
+        console.log(
+          `[Inline] updating attributes for "${childNode.data}". Parent is set: ${childNode.parent === this}; Grandparent is set: ${this.parent instanceof Block}`,
+          dataSerialize(this.attributes),
+        );
         childNode.updateAttributes();
         continue;
       }
@@ -272,20 +279,28 @@ export function navigatingTo(args: EventData) {
 
   const content = page.content;
   console.log(content);
+
   const block = new Block();
   block.setAttribute(NSUnderlineStyleAttributeName, NSUnderlineStyle.Single);
+  block.setAttribute(NSFontAttributeName, UIFont.systemFontOfSize(36));
 
   for (let i = 0; i < 3; i++) {
     const inline = new Inline();
     inline.addTextNode(new TextNode(`[${i}] lorem ipsum dolor sit amet, `));
     inline.setAttribute(
       NSForegroundColorAttributeName,
-      i % 2 === 0 ? UIColor.brownColor : UIColor.blueColor,
+      i % 2 === 0 ? UIColor.systemMintColor : UIColor.blueColor,
     );
     block.addInline(inline);
 
     // FIXME: ensure update runs when we set attribute post-hoc.
     inline.setAttribute(NSForegroundColorAttributeName, UIColor.redColor);
+    // Is it the case that we just can't change attributes anymore once the
+    // attributed string is appended?
+    inline.setAttribute(
+      NSForegroundColorAttributeName,
+      UIColor.systemBrownColor,
+    );
   }
 
   // No idea why attribute-setting is failing to be reflected visually, beyond
