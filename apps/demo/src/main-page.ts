@@ -278,11 +278,14 @@ export function navigatingTo(args: EventData) {
   for (let i = 0; i < 3; i++) {
     const inline = new Inline();
     inline.addTextNode(new TextNode(`[${i}] lorem ipsum dolor sit amet, `));
-    block.addInline(inline);
     inline.setAttribute(
       NSForegroundColorAttributeName,
       i % 2 === 0 ? UIColor.brownColor : UIColor.blueColor,
     );
+    block.addInline(inline);
+
+    // FIXME: ensure update runs when we set attribute post-hoc.
+    inline.setAttribute(NSForegroundColorAttributeName, UIColor.redColor);
   }
 
   // No idea why attribute-setting is failing to be reflected visually, beyond
