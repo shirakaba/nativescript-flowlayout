@@ -118,6 +118,19 @@ class TextNode {
   get data() {
     return this._data;
   }
+  /**
+   * Replaces the original characters of the attributed string without clearing
+   * attributes.
+   */
+  set data(value: string) {
+    this._data = value;
+
+    this.attributedString.replaceCharactersInRangeWithString(
+      // @ts-ignore missing from typings, somehow
+      NSMakeRange(0, this.attributedString.length),
+      value,
+    );
+  }
 
   /**
    * To be updated, by the parent, upon insertion and removal.
