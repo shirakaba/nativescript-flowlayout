@@ -207,8 +207,8 @@ class Inline {
   }
 
   addTextNode(textNode: TextNode) {
-    this._childNodes.push(textNode);
     textNode.parent = this;
+    this._childNodes.push(textNode);
   }
   removeTextNode(textNode: TextNode) {
     const index = this._childNodes.indexOf(textNode);
