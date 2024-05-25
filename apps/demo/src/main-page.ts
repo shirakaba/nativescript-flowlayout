@@ -59,7 +59,7 @@ class Block {
   }
 
   deleteAttribute(key: string) {
-    if (!this.attributes) {
+    if (!this.attributes || !(key in this.attributes)) {
       return;
     }
     delete this.attributes[key];
