@@ -108,6 +108,16 @@ class Block {
     this.inlines.splice(index, 1);
     inline.parent = null;
   }
+
+  /**
+   *
+   * @param range The range into the textStorage affected by the update
+   * @param data The new data to write into that range
+   */
+  onAncestorDidUpdateData(range: NSRange, data: string) {
+    // Ideally, the block should work out the range for us.
+    // https://github.com/jsdom/jsdom/blob/2f8a7302a43fff92f244d5f3426367a8eb2b8896/lib/jsdom/living/nodes/CharacterData-impl.js#L11
+  }
 }
 
 class TextNode {
@@ -125,11 +135,7 @@ class TextNode {
   set data(value: string) {
     this._data = value;
 
-    this.attributedString.replaceCharactersInRangeWithString(
-      // @ts-ignore missing from typings, somehow
-      NSMakeRange(0, this.attributedString.length),
-      value,
-    );
+    this.parent?.onChildTextNodeDidUpdateData(this);
   }
 
   /**
@@ -137,76 +143,8 @@ class TextNode {
    */
   parent: Inline | null = null;
 
-  private _attributedString?: NSMutableAttributedString;
-  get attributedString() {
-    if (!this._attributedString) {
-      this._attributedString = NSMutableAttributedString.alloc().initWithString(
-        this.data,
-      );
-    }
-    return this._attributedString;
-  }
-
-  /**
-   * Walks up the DOM parents to resolve the attributes to apply.
-   */
-  updateAttributes() {
-    let attributes: Record<string, unknown> | undefined;
-
-    for (const ancestor of this.climbAncestors()) {
-      if (!ancestor.attributes) {
-        continue;
-      }
-
-      for (const key in ancestor.attributes) {
-        // A child already has the attribute, so disregard the parent's value.
-        if (attributes?.[key]) {
-          continue;
-        }
-
-        if (!attributes) {
-          attributes = {};
-        }
-        attributes[key] = ancestor.attributes[key];
-      }
-    }
-
-    this.setAttributes(attributes ?? recycledEmptyObject);
-  }
-
-  private *climbAncestors() {
-    let parent: Inline | Block | null = this.parent;
-    while (parent) {
-      yield parent;
-      parent = parent.parent;
-    }
-  }
-
-  private setAttributes(
-    attributes: NSDictionary<string, unknown> | Record<string, unknown>,
-  ) {
-    console.log(
-      `[TextNode.setAttributes] 0->${this.attributedString.length}`,
-      dataSerialize(attributes),
-    );
-    this.attributedString.setAttributesRange(
-      attributes as unknown as NSDictionary<string, unknown>,
-      // @ts-ignore missing from typings, somehow
-      NSMakeRange(0, this.attributedString.length),
-    );
-
-    console.log(
-      "Resulting attributes of TextNode",
-      this.attributedString.attributesAtIndexEffectiveRange(
-        0,
-        new interop.Pointer(),
-      ),
-    );
-  }
-
   appendData(data: string) {
     this._data += data;
-    // TODO: inform parents
   }
 }
 
@@ -223,9 +161,29 @@ class Inline {
     }
   }
 
+  // This is getting hard. Will try to port _referencedRanges and CharacterData
+  // from JSDOM instead.
+  //
+  // _referencedRanges: Set comes from Node:
+  // https://github.com/jsdom/jsdom/blob/main/lib/jsdom/living/nodes/Node-impl.js
+
+  onChildInlineDidUpdateData(child: Inline) {
+    this.parent?.onChildInlineDidUpdateData(this);
+  }
+  onChildTextNodeDidUpdateData(_child: TextNode) {
+    this.parent?.onChildInlineDidUpdateData(this);
+  }
+  onChildInlineDidUpdateAttributes(_child: Inline) {
+    //
+  }
+  onChildInlineDidUpdateAttribute(_child: Inline) {
+    //
+  }
+
   addTextNode(textNode: TextNode) {
     textNode.parent = this;
     this._childNodes.push(textNode);
+    // FIXME: needs to inform parent Block of insertion
   }
   removeTextNode(textNode: TextNode) {
     const index = this._childNodes.indexOf(textNode);
