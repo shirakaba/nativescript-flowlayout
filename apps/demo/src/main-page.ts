@@ -26,7 +26,7 @@ class Block {
   // initWithStringAttributes. However, the attributes specified apply only to
   // that initial string, and do not cascade to subsequently appended
   // attributed strings.
-  private readonly textStorage = NSTextStorage.new();
+  readonly textStorage = NSTextStorage.new();
 
   // One layoutManager can hold multiple textContainers.
   //
@@ -75,7 +75,7 @@ class Block {
    */
   parent: Block | null = null;
 
-  private inlines = new Array<Inline>();
+  inlines = new Array<Inline>();
 
   addInline(inline: Inline) {
     // Need to set this from the start, as the TextNode grandchildren will be
@@ -294,27 +294,50 @@ export function navigatingTo(args: EventData) {
   console.log(content);
 
   const block = new Block();
-  block.setAttribute(NSUnderlineStyleAttributeName, NSUnderlineStyle.Single);
-  block.setAttribute(NSFontAttributeName, UIFont.systemFontOfSize(36));
+  // block.setAttribute(NSUnderlineStyleAttributeName, NSUnderlineStyle.Single);
+  // block.setAttribute(NSFontAttributeName, UIFont.systemFontOfSize(36));
 
-  for (let i = 0; i < 3; i++) {
+  for (let i = 0; i < 1; i++) {
     const inline = new Inline();
-    inline.addTextNode(new TextNode(`[${i}] lorem ipsum dolor sit amet, `));
-    inline.setAttribute(
-      NSForegroundColorAttributeName,
-      i % 2 === 0 ? UIColor.systemMintColor : UIColor.blueColor,
-    );
+    const textNode = new TextNode(`[${i}] lorem ipsum dolor sit amet, `);
+    inline.addTextNode(textNode);
+    inline.setAttribute(NSForegroundColorAttributeName, UIColor.blueColor);
     block.addInline(inline);
-
-    // FIXME: ensure update runs when we set attribute post-hoc.
-    inline.setAttribute(NSForegroundColorAttributeName, UIColor.redColor);
-    // Is it the case that we just can't change attributes anymore once the
-    // attributed string is appended?
-    inline.setAttribute(
-      NSForegroundColorAttributeName,
-      UIColor.systemBrownColor,
+    console.log(
+      "TextNode before",
+      textNode.attributedString.attributesAtIndexEffectiveRange(
+        0,
+        new interop.Pointer(),
+      ),
+    );
+    textNode.data = "NEW DATA";
+    console.log(
+      "TextNode after",
+      textNode.attributedString.attributesAtIndexEffectiveRange(
+        0,
+        new interop.Pointer(),
+      ),
     );
   }
+
+  // It seems to be the case that we can't change attributes *or* text content
+  // anymore once the attributed string is appended. So instead, the native
+  // objects should really be managed at the block level and there's no point in
+  // TextNode managing its own attributed string (because, after being added,
+  // updating it does not update the block).
+
+  console.log(
+    "Block before",
+    block.textStorage.attributesAtIndexEffectiveRange(0, new interop.Pointer()),
+  );
+  block.inlines[0].setAttribute(
+    NSForegroundColorAttributeName,
+    UIColor.redColor,
+  );
+  console.log(
+    "Block after",
+    block.textStorage.attributesAtIndexEffectiveRange(0, new interop.Pointer()),
+  );
 
   // No idea why attribute-setting is failing to be reflected visually, beyond
   // the fact that we've moved from ready-initialized NSAttributedStrings to
