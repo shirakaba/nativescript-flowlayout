@@ -77,6 +77,11 @@ class Block {
   private inlines = new Array<Inline>();
 
   addInline(inline: Inline) {
+    // Need to set this from the start, as the TextNode grandchildren will be
+    // climbing up to here during updateAttributes
+    inline.parent = this;
+    this.inlines.push(inline);
+
     for (const childNode of inline.getChildNodes()) {
       if (childNode instanceof TextNode) {
         // Update attributes (i.e. resolve the style cascade) before insertion
@@ -89,9 +94,6 @@ class Block {
 
       this.addInline(childNode);
     }
-
-    this.inlines.push(inline);
-    inline.parent = this;
   }
 
   removeInline(inline: Inline) {
