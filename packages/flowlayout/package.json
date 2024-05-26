@@ -37,7 +37,7 @@
     "@nativescript/core": "~8.6.0"
   },
   "devDependencies": {
-    "@repo/tsconfig": "workspace:^",
+    "@repo/tsconfig": "*",
     "typescript": "~5.2.0"
   }
 }

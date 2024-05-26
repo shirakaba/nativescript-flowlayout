@@ -7,20 +7,14 @@
     "packages/*"
   ],
   "scripts": {
-    "build": "pnpm -r build",
-    "dev": "pnpm -r dev --parallel",
-    "format": "pnpm -r format",
-    "lint": "pnpm -r lint",
-    "test:e2e": "pnpm -r test:e2e",
-    "test:unit": "pnpm -r test:unit"
+    "format": "npm run format --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
+    "test:e2e": "npm run test:e2e --workspaces --if-present",
+    "test:unit": "npm run test:unit --workspaces --if-present"
   },
   "devDependencies": {
-    "@repo/eslint-config": "workspace:*",
+    "@repo/eslint-config": "*",
     "eslint": "^8.56.0",
     "prettier": "^3.2.5"
-  },
-  "engines": {
-    "node": ">= 20.0.0"
-  },
-  "packageManager": "pnpm@9.0.2"
+  }
 }

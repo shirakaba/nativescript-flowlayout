@@ -6,7 +6,7 @@
   "dependencies": {
     "@nativescript/core": "~8.6.0",
     "@nativescript/ios": "^8.6.3",
-    "@repo/flowlayout": "workspace:*",
+    "@repo/flowlayout": "*",
     "symbol-tree": "^3.2.4"
   },
   "devDependencies": {
