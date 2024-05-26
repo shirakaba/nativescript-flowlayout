@@ -22,17 +22,22 @@ export class Inline extends FlowElement {
       throw new Error("Can only add Inline or Text to an Inline.");
     }
 
-    // TODO: if FlowText is added, inform parent
+    const appended = super.appendChild(node);
 
-    return super.appendChild(node);
+    if (isInline(node)) {
+      this.block?.onDescendantDidInsertInline(node);
+    } else {
+      this.block?.onDescendantDidInsertText(node);
+    }
+
+    return appended;
   }
 
   attributes?: Record<string, unknown>;
   setAttribute(key: string, value: unknown) {
     super.setAttribute(key, value);
 
-    const closestBlock = closest(this, isBlock);
-    closestBlock?.onDescendantDidUpdateAttributes(this);
+    this.block?.onDescendantDidUpdateAttributes(this);
   }
 
   deleteAttribute(key: string) {
@@ -40,9 +45,13 @@ export class Inline extends FlowElement {
       return false;
     }
 
-    const closestBlock = closest(this, isBlock);
-    closestBlock?.onDescendantDidUpdateAttributes(this);
+    this.block?.onDescendantDidUpdateAttributes(this);
 
     return true;
+  }
+
+  /** The closest Block ancestor, or null if there is none. */
+  private get block() {
+    return closest(this, isBlock);
   }
 }

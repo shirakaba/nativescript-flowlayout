@@ -1,9 +1,9 @@
 import { nodeNames } from "./constants";
 import { FlowElement } from "./element";
-import { isInline } from "./helpers";
-import { Inline } from "./inline";
+import { isBlock, isElement, isInline, isText } from "./helpers";
+import type { Inline } from "./inline";
 import type { FlowNode } from "./node";
-import { FlowText } from "./text";
+import type { FlowText } from "./text";
 import { tree } from "./tree";
 
 const recycledEmptyObject = Object.freeze({});
@@ -88,16 +88,17 @@ export class Block extends FlowElement {
    * Walks up the DOM ancestors (including self) to resolve the attributes to
    * apply.
    */
-  private static resolveAttributes(inline: Inline | Block) {
+  private static resolveAttributes(node: FlowText | Inline | Block) {
     let attributes: Record<string, unknown> | undefined;
 
-    for (const ancestor of tree.ancestorsIterator(inline) as Generator<
-      Inline | Block
+    for (const ancestor of tree.ancestorsIterator(node) as Generator<
+      FlowText | Inline | Block
     >) {
       // console.log(
       //   `[resolveAttributes] climbAncestors(<${inline.nodeName.toLowerCase()}>${inline.textContent}</${inline.nodeName.toLowerCase()}>): <${ancestor.nodeName.toLowerCase()}>${ancestor.textContent}</${ancestor.nodeName.toLowerCase()}>`,
       // );
-      if (!ancestor.attributes) {
+
+      if (!isElement(ancestor) || !ancestor.attributes) {
         continue;
       }
 
@@ -127,20 +128,16 @@ export class Block extends FlowElement {
     const appended = super.appendChild(node);
 
     for (const childNode of node.childNodes) {
-      if (childNode instanceof FlowText) {
+      if (isText(childNode)) {
         const attributes = Block.resolveAttributes(node);
         console.log(
           `[Block] Appending inline "${childNode.data}"`,
           attributes ?? "<no attributes>",
         );
-        const placeholderString = NSAttributedString.alloc();
-
-        const attributedString = attributes
-          ? placeholderString.initWithStringAttributes(
-              childNode.data,
-              attributes as unknown as NSDictionary<string, unknown>,
-            )
-          : placeholderString.initWithString(childNode.data);
+        const attributedString = Block.createAttributedString(
+          childNode.data,
+          attributes,
+        );
 
         this.textStorage.appendAttributedString(attributedString);
         continue;
@@ -224,6 +221,42 @@ export class Block extends FlowElement {
   }
 
   /**
+   * Descendants should call this method upon any insertion of an Inline, so
+   * that this Block instance can reflect the native changes.
+   *
+   * @param insertedInline The inline that was just inserted.
+   */
+  onDescendantDidInsertInline(insertedInline: Inline) {
+    for (const childNode of insertedInline.childNodes) {
+      if (isText(childNode)) {
+        this.onDescendantDidInsertText(childNode);
+        continue;
+      }
+
+      if (!isInline(childNode)) {
+        throw new Error(
+          "Expected Block to have only child nodes of type Inline or Text.",
+        );
+      }
+
+      this.onDescendantDidInsertInline(childNode);
+    }
+  }
+
+  onDescendantDidInsertText(insertedText: FlowText) {
+    const startOffset = Block.getStartOffsetOfDescendant(insertedText, this);
+    const attributedString = Block.createAttributedString(
+      insertedText.data,
+      Block.resolveAttributes(insertedText),
+    );
+
+    this.textStorage.insertAttributedStringAtIndex(
+      attributedString,
+      startOffset,
+    );
+  }
+
+  /**
    * Descendants should call this method upon any attribute update, so that this
    * Block instance can update the attributes across all affected ranges.
    *
@@ -237,7 +270,7 @@ export class Block extends FlowElement {
     //
     // The search is inclusive, so begins with the descendant itself.
     for (const node of tree.treeIterator(descendant)) {
-      if (!(node instanceof Inline) && !(node instanceof Block)) {
+      if (!isInline(node) && !isBlock(node)) {
         // Only act upon descendants that manage attributes.
         continue;
       }
@@ -259,5 +292,19 @@ export class Block extends FlowElement {
       //   attributes,
       // });
     }
+  }
+
+  private static createAttributedString(
+    text: string,
+    attributes?: Record<string, unknown>,
+  ) {
+    const placeholderString = NSAttributedString.alloc();
+
+    return attributes
+      ? placeholderString.initWithStringAttributes(
+          text,
+          attributes as unknown as NSDictionary<string, unknown>,
+        )
+      : placeholderString.initWithString(text);
   }
 }
