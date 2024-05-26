@@ -39,18 +39,34 @@ export function navigatingTo(args: EventData) {
     block.appendChild(inline);
   }
 
-  // Prove that we can update attributes post-insertion
-  const [, middleInline, lastInline] = [...block.childNodes] as [
+  // Some extra tests once we've already pushed the initial Inlines into the
+  // Block:
+
+  // Prove that we can update attributes.
+  const [firstInline, middleInline, lastInline] = [...block.childNodes] as [
     Inline,
     Inline,
     Inline,
   ];
   lastInline.setAttribute(NSForegroundColorAttributeName, UIColor.redColor);
 
-  // Prove that we can update text post-insertion
+  // Prove that we can update text.
   const textNode = [...middleInline.childNodes][0] as FlowText;
-  textNode.data = "[1] …updated! ";
+  textNode.data = "[1] updated text! ";
 
+  // Prove that we can insert a second FlowText into an inline.
+  firstInline.appendChild(new FlowText("[0a] Inserted text node. "));
+
+  // Prove that we can insert a second Inline into an Inline.
+  const anotherInline = new Inline();
+  anotherInline.appendChild(new FlowText("[0b] Inserted green inline. "));
+  anotherInline.setAttribute(
+    NSForegroundColorAttributeName,
+    UIColor.greenColor,
+  );
+  firstInline.appendChild(anotherInline);
+
+  // Once the native view from Core has been populated, insert our view into it.
   content.addEventListener("loaded", () => {
     console.log("loaded!");
     const rect = CGRectMake(0, 0, 394, 760);
