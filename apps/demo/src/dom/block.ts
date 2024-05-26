@@ -183,6 +183,17 @@ export class Block extends NodeImpl {
     traverseUntilAncestor?: Block,
   ) {
     let startOffset = 0;
+
+    // Walk up the inclusive ancestors of the descendant (i.e. first the
+    // descendant, then its ancestors). For each ancestor traversed, count the
+    // preceding text length.
+    //
+    // Aside: We could alternatively implement this by running
+    // `tree.preceding(precedingNode, { root: traverseUntilAncestor })` until
+    // `precedingNode` becomes null from hitting the root. Unlike this method,
+    // `tree.preceding()` buries into elements, so we'd probably filter on
+    // TextNodes and collect `textNode.data` rather than just calling
+    // `node.textContent` on all previous siblings.
     for (const ancestor of tree.ancestorsIterator(descendant)) {
       if (ancestor === traverseUntilAncestor) {
         break;
