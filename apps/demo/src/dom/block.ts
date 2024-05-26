@@ -1,7 +1,10 @@
+import { nodeNames } from "./constants";
+import { FlowElement } from "./element";
+import { isInline } from "./helpers";
 import { Inline } from "./inline";
-import { FlowNode } from "./node";
+import type { FlowNode } from "./node";
 import { FlowText } from "./text";
-import { isInline, tree } from "./tree";
+import { tree } from "./tree";
 
 const recycledEmptyObject = Object.freeze({});
 
@@ -12,17 +15,12 @@ const recycledEmptyObject = Object.freeze({});
  * spec.
  * @see Element
  */
-export class Block extends FlowNode {
+export class Block extends FlowElement {
   static {
-    this.prototype.nodeName = "BLOCK";
-    this.prototype.nodeType = 1;
+    this.prototype.nodeName = nodeNames.Block;
   }
 
-  get nodeValue(): string | null {
-    throw new Error("Method not implemented.");
-  }
   nodeName!: string;
-  nodeType!: number;
 
   // One textStorage can hold multiple layoutManagers.
   //
@@ -44,26 +42,14 @@ export class Block extends FlowNode {
 
   readonly textContainer = NSTextContainer.new();
 
-  get textContent() {
-    let data = "";
-    for (const child of this.childNodes) {
-      data += child.textContent;
-    }
-    return data;
-  }
-
   constructor() {
     super();
     this.textStorage.addLayoutManager(this.layoutManager);
     this.layoutManager.addTextContainer(this.textContainer);
   }
 
-  attributes?: Record<string, unknown>;
   setAttribute(key: string, value: unknown) {
-    if (!this.attributes) {
-      this.attributes = {};
-    }
-    this.attributes[key] = value;
+    super.setAttribute(key, value);
 
     // Iterate over all inlines and cascade styles down to descendants (allowing
     // clobbering by more specific styles).
@@ -82,10 +68,9 @@ export class Block extends FlowNode {
   }
 
   deleteAttribute(key: string) {
-    if (!this.attributes || !(key in this.attributes)) {
-      return;
+    if (!super.deleteAttribute(key)) {
+      return false;
     }
-    delete this.attributes[key];
 
     for (const inline of this.childNodes) {
       if (!isInline(inline)) {
@@ -95,6 +80,8 @@ export class Block extends FlowNode {
       }
       inline.deleteAttribute(key);
     }
+
+    return true;
   }
 
   /**

@@ -5,9 +5,6 @@ import { tree } from "./tree";
  * @see Node
  */
 export abstract class FlowNode {
-  /**
-   * Warning: Implements only a subset of NodeListOf<T> (just Symbol.iterator).
-   */
   get childNodes() {
     return tree.childrenIterator(this);
   }

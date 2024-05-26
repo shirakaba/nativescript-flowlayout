@@ -1,5 +1,7 @@
+import { nodeNames, nodeTypes } from "./constants";
+import { closest, isBlock, isText } from "./helpers";
 import { FlowNode } from "./node";
-import { closest, isBlock, isText, tree } from "./tree";
+import { tree } from "./tree";
 
 /**
  * A leaf node representing a text fragment, based on Text from the DOM spec.
@@ -7,8 +9,8 @@ import { closest, isBlock, isText, tree } from "./tree";
  */
 export class FlowText extends FlowNode {
   static {
-    this.prototype.nodeName = "#text";
-    this.prototype.nodeType = 3;
+    this.prototype.nodeName = nodeNames.Text;
+    this.prototype.nodeType = nodeTypes.TEXT_NODE;
   }
 
   private _data: string;

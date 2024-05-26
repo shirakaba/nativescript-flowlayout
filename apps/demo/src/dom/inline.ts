@@ -1,5 +1,7 @@
-import { FlowNode } from "./node";
-import { closest, isBlock, isInline, isText } from "./tree";
+import { nodeNames } from "./constants";
+import { FlowElement } from "./element";
+import { closest, isBlock, isInline, isText } from "./helpers";
+import type { FlowNode } from "./node";
 
 /**
  * Allowed children: Inline, FlowText.
@@ -8,55 +10,39 @@ import { closest, isBlock, isInline, isText } from "./tree";
  * spec.
  * @see Element
  */
-export class Inline extends FlowNode {
+export class Inline extends FlowElement {
   static {
-    this.prototype.nodeName = "INLINE";
-    this.prototype.nodeType = 1;
+    this.prototype.nodeName = nodeNames.Inline;
   }
 
-  get nodeValue(): string | null {
-    return null;
-  }
   nodeName!: string;
-  nodeType!: number;
-
-  get textContent() {
-    let data = "";
-    for (const child of this.childNodes) {
-      data += child.textContent;
-    }
-    return data;
-  }
 
   appendChild<T extends FlowNode>(node: T): T {
     if (!isInline(node) && !isText(node)) {
       throw new Error("Can only add Inline or Text to an Inline.");
     }
 
-    // TODO: if TextImpl is added, inform parent
+    // TODO: if FlowText is added, inform parent
 
     return super.appendChild(node);
   }
+
   attributes?: Record<string, unknown>;
   setAttribute(key: string, value: unknown) {
-    if (!this.attributes) {
-      this.attributes = {};
-    }
-    this.attributes[key] = value;
+    super.setAttribute(key, value);
 
     const closestBlock = closest(this, isBlock);
     closestBlock?.onDescendantDidUpdateAttributes(this);
   }
+
   deleteAttribute(key: string) {
-    if (!this.attributes) {
-      return;
-    }
-    delete this.attributes[key];
-    if (!Object.keys(this.attributes).length) {
-      delete this.attributes;
+    if (!super.deleteAttribute(key)) {
+      return false;
     }
 
     const closestBlock = closest(this, isBlock);
     closestBlock?.onDescendantDidUpdateAttributes(this);
+
+    return true;
   }
 }
