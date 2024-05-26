@@ -84,40 +84,6 @@ export class Block extends FlowElement {
     return true;
   }
 
-  /**
-   * Walks up the DOM ancestors (including self) to resolve the attributes to
-   * apply.
-   */
-  private static resolveAttributes(node: FlowText | Inline | Block) {
-    let attributes: Record<string, unknown> | undefined;
-
-    for (const ancestor of tree.ancestorsIterator(node) as Generator<
-      FlowText | Inline | Block
-    >) {
-      // console.log(
-      //   `[resolveAttributes] climbAncestors(<${inline.nodeName.toLowerCase()}>${inline.textContent}</${inline.nodeName.toLowerCase()}>): <${ancestor.nodeName.toLowerCase()}>${ancestor.textContent}</${ancestor.nodeName.toLowerCase()}>`,
-      // );
-
-      if (!isElement(ancestor) || !ancestor.attributes) {
-        continue;
-      }
-
-      for (const key in ancestor.attributes) {
-        // A child already has the attribute, so disregard the parent's value.
-        if (attributes?.[key]) {
-          continue;
-        }
-
-        if (!attributes) {
-          attributes = {};
-        }
-        attributes[key] = ancestor.attributes[key];
-      }
-    }
-
-    return attributes;
-  }
-
   appendChild<T extends FlowNode>(node: T): T {
     if (!isInline(node)) {
       throw new Error("Block can only append child nodes of type Inline.");
@@ -129,12 +95,12 @@ export class Block extends FlowElement {
 
     for (const childNode of node.childNodes) {
       if (isText(childNode)) {
-        const attributes = Block.resolveAttributes(node);
+        const attributes = resolveAttributes(node);
         console.log(
           `[Block] Appending inline "${childNode.data}"`,
           attributes ?? "<no attributes>",
         );
-        const attributedString = Block.createAttributedString(
+        const attributedString = createAttributedString(
           childNode.data,
           attributes,
         );
@@ -147,52 +113,6 @@ export class Block extends FlowElement {
     }
 
     return appended;
-  }
-
-  /**
-   * Calculates the startOffset of the given descendant by walking in tree order
-   * counting all text leading up to it.
-   *
-   * @param descendant The descendant to count the text offset up until.
-   * @param traverseUntilAncestor Optional. Specifies the ancestor to stop
-   *   traversal at. Siblings preceding the ancestor, and ancestors of that
-   *   ancestor, will not contribute towards the startOffset. In other words,
-   *   the startOffset begins from this node.
-   *
-   *   Haven't yet decided how to handle nested blocks (is it possible to nest
-   *   NSTextStorage, or do we have to merge them, or is it impossible to
-   *   support altogether?). When the time comes, the consumer will have to
-   *   work out whether to stop traversal at the closest Block or walk the
-   *   whole tree.
-   * @returns
-   */
-  private static getStartOffsetOfDescendant(
-    descendant: FlowNode,
-    traverseUntilAncestor?: Block,
-  ) {
-    let startOffset = 0;
-
-    // Walk up the inclusive ancestors of the descendant (i.e. first the
-    // descendant, then its ancestors). For each ancestor traversed, count the
-    // preceding text length.
-    //
-    // Aside: We could alternatively implement this by running
-    // `tree.preceding(precedingNode, { root: traverseUntilAncestor })` until
-    // `precedingNode` becomes null from hitting the root. Unlike this method,
-    // `tree.preceding()` buries into elements, so we'd probably filter on
-    // TextNodes and collect `textNode.data` rather than just calling
-    // `node.textContent` on all previous siblings.
-    for (const ancestor of tree.ancestorsIterator(descendant)) {
-      if (ancestor === traverseUntilAncestor) {
-        break;
-      }
-
-      for (const prevSibling of tree.previousSiblingsIterator(ancestor)) {
-        startOffset += prevSibling.textContent?.length ?? 0;
-      }
-    }
-
-    return startOffset;
   }
 
   /**
@@ -209,7 +129,7 @@ export class Block extends FlowElement {
     prevData: string,
     newData: string,
   ) {
-    const startOffset = Block.getStartOffsetOfDescendant(descendant, this);
+    const startOffset = getStartOffsetOfDescendant(descendant, this);
 
     this.textStorage.replaceCharactersInRangeWithString(
       {
@@ -244,10 +164,10 @@ export class Block extends FlowElement {
   }
 
   onDescendantDidInsertText(insertedText: FlowText) {
-    const startOffset = Block.getStartOffsetOfDescendant(insertedText, this);
-    const attributedString = Block.createAttributedString(
+    const startOffset = getStartOffsetOfDescendant(insertedText, this);
+    const attributedString = createAttributedString(
       insertedText.data,
-      Block.resolveAttributes(insertedText),
+      resolveAttributes(insertedText),
     );
 
     this.textStorage.insertAttributedStringAtIndex(
@@ -275,8 +195,8 @@ export class Block extends FlowElement {
         continue;
       }
 
-      const startOffset = Block.getStartOffsetOfDescendant(node, this);
-      const attributes = Block.resolveAttributes(node) ?? recycledEmptyObject;
+      const startOffset = getStartOffsetOfDescendant(node, this);
+      const attributes = resolveAttributes(node) ?? recycledEmptyObject;
 
       this.textStorage.setAttributesRange(
         attributes as unknown as NSDictionary<string, unknown>,
@@ -293,18 +213,98 @@ export class Block extends FlowElement {
       // });
     }
   }
+}
 
-  private static createAttributedString(
-    text: string,
-    attributes?: Record<string, unknown>,
-  ) {
-    const placeholderString = NSAttributedString.alloc();
+/**
+ * Walks up the DOM ancestors (including self) to resolve the attributes to
+ * apply.
+ */
+function resolveAttributes(node: FlowText | Inline | Block) {
+  let attributes: Record<string, unknown> | undefined;
 
-    return attributes
-      ? placeholderString.initWithStringAttributes(
-          text,
-          attributes as unknown as NSDictionary<string, unknown>,
-        )
-      : placeholderString.initWithString(text);
+  for (const ancestor of tree.ancestorsIterator(node) as Generator<
+    FlowText | Inline | Block
+  >) {
+    // console.log(
+    //   `[resolveAttributes] climbAncestors(<${inline.nodeName.toLowerCase()}>${inline.textContent}</${inline.nodeName.toLowerCase()}>): <${ancestor.nodeName.toLowerCase()}>${ancestor.textContent}</${ancestor.nodeName.toLowerCase()}>`,
+    // );
+
+    if (!isElement(ancestor) || !ancestor.attributes) {
+      continue;
+    }
+
+    for (const key in ancestor.attributes) {
+      // A child already has the attribute, so disregard the parent's value.
+      if (attributes?.[key]) {
+        continue;
+      }
+
+      if (!attributes) {
+        attributes = {};
+      }
+      attributes[key] = ancestor.attributes[key];
+    }
   }
+
+  return attributes;
+}
+
+function createAttributedString(
+  text: string,
+  attributes?: Record<string, unknown>,
+) {
+  const placeholderString = NSAttributedString.alloc();
+
+  return attributes
+    ? placeholderString.initWithStringAttributes(
+        text,
+        attributes as unknown as NSDictionary<string, unknown>,
+      )
+    : placeholderString.initWithString(text);
+}
+
+/**
+ * Calculates the startOffset of the given descendant by walking in tree order
+ * counting all text leading up to it.
+ *
+ * @param descendant The descendant to count the text offset up until.
+ * @param traverseUntilAncestor Optional. Specifies the ancestor to stop
+ *   traversal at. Siblings preceding the ancestor, and ancestors of that
+ *   ancestor, will not contribute towards the startOffset. In other words,
+ *   the startOffset begins from this node.
+ *
+ *   Haven't yet decided how to handle nested blocks (is it possible to nest
+ *   NSTextStorage, or do we have to merge them, or is it impossible to
+ *   support altogether?). When the time comes, the consumer will have to
+ *   work out whether to stop traversal at the closest Block or walk the
+ *   whole tree.
+ * @returns
+ */
+function getStartOffsetOfDescendant(
+  descendant: FlowNode,
+  traverseUntilAncestor?: Block,
+) {
+  let startOffset = 0;
+
+  // Walk up the inclusive ancestors of the descendant (i.e. first the
+  // descendant, then its ancestors). For each ancestor traversed, count the
+  // preceding text length.
+  //
+  // Aside: We could alternatively implement this by running
+  // `tree.preceding(precedingNode, { root: traverseUntilAncestor })` until
+  // `precedingNode` becomes null from hitting the root. Unlike this method,
+  // `tree.preceding()` buries into elements, so we'd probably filter on
+  // TextNodes and collect `textNode.data` rather than just calling
+  // `node.textContent` on all previous siblings.
+  for (const ancestor of tree.ancestorsIterator(descendant)) {
+    if (ancestor === traverseUntilAncestor) {
+      break;
+    }
+
+    for (const prevSibling of tree.previousSiblingsIterator(ancestor)) {
+      startOffset += prevSibling.textContent?.length ?? 0;
+    }
+  }
+
+  return startOffset;
 }
