@@ -1,7 +1,8 @@
 import { nodeNames } from "./constants";
 import { FlowElement } from "./element";
-import { isBlock, isElement, isInline, isText } from "./helpers";
+import { isBlock, isElement, isInline, isInlineBlock, isText } from "./helpers";
 import type { Inline } from "./inline";
+import type { InlineBlock } from "./inline-block";
 import type { FlowNode } from "./node";
 import type { FlowText } from "./text";
 import { tree } from "./tree";
@@ -9,7 +10,7 @@ import { tree } from "./tree";
 const recycledEmptyObject = Object.freeze({});
 
 /**
- * Allowed children: Inline.
+ * Allowed children: Inline, InlineBlock.
  *
  * A stylable container with block display mode, based on Element from the DOM
  * spec.
@@ -85,13 +86,31 @@ export class Block extends FlowElement {
   }
 
   appendChild<T extends FlowNode>(node: T): T {
-    if (!isInline(node)) {
-      throw new Error("Block can only append child nodes of type Inline.");
+    if (!isInline(node) && !isInlineBlock(node)) {
+      throw new Error(
+        "Block can only append child nodes of type Inline or InlineBlock.",
+      );
     }
 
     // Need to set this from the start, as the TextNode grandchildren will be
     // climbing up to here during updateAttributes
     const appended = super.appendChild(node);
+
+    if (isInlineBlock(node)) {
+      // Ignore descendants of InlineBlock for now; treat as a leaf node.
+
+      const attachment = NSTextAttachment.new();
+      attachment.bounds = CGRectMake(0, 0, node.width, node.height);
+      this.textStorage.appendAttributedString(
+        NSAttributedString.attributedStringWithAttachment(attachment),
+      );
+
+      // I'm sure NSTextAttachmentViewProvider is superior, but I couldn't find
+      // any docs for it.
+      // https://developer.apple.com/documentation/uikit/nstextattachmentviewprovider?language=objc
+
+      return appended;
+    }
 
     for (const childNode of node.childNodes) {
       if (isText(childNode)) {
@@ -212,6 +231,89 @@ export class Block extends FlowElement {
       //   attributes,
       // });
     }
+  }
+
+  /**
+   * TODO: check this works, via restyling an InlineBlock post-insertion.
+   *
+   * Descendant InlineBlocks should call this method upon any width update, so
+   * that this Block instance can update the width of the corresponding
+   * NSTextAttachment.
+   */
+  onDescendantDidUpdateWidth(descendant: InlineBlock, width: number) {
+    if (!isInlineBlock(descendant)) {
+      // Only act upon descendants that manage width.
+      return;
+    }
+
+    const startOffset = getStartOffsetOfDescendant(descendant);
+
+    this.textStorage.enumerateAttributeInRangeOptionsUsingBlock(
+      NSAttachmentAttributeName,
+      // May have to widen this to at least length 1. Not sure yet how to handle
+      // a zero-width range.
+      { location: startOffset, length: 0 },
+      0 as NSAttributedStringEnumerationOptions,
+      (
+        attribute: NSTextAttachment,
+        _range: NSRange,
+        // stop: interop.Pointer | interop.Reference<boolean>,
+      ) => {
+        // Should ideally check whether attribute really is an NSTextAttachment,
+        // as they do here: https://stackoverflow.com/a/33961204/5951226
+
+        console.log("Enumerating attribute", attribute);
+        attribute.bounds = CGRectMake(
+          0,
+          0,
+          width,
+          attribute.bounds.size.height,
+        );
+
+        // TODO: would be nice to know the NativeScript API to stop this loop
+      },
+    );
+  }
+
+  /**
+   * TODO: check this works, via restyling an InlineBlock post-insertion.
+   *
+   * Descendant InlineBlocks should call this method upon any height update, so
+   * that this Block instance can update the height of the corresponding
+   * NSTextAttachment.
+   */
+  onDescendantDidUpdateHeight(descendant: InlineBlock, height: number) {
+    if (!isInlineBlock(descendant)) {
+      // Only act upon descendants that manage height.
+      return;
+    }
+
+    const startOffset = getStartOffsetOfDescendant(descendant);
+
+    this.textStorage.enumerateAttributeInRangeOptionsUsingBlock(
+      NSAttachmentAttributeName,
+      // May have to widen this to at least length 1. Not sure yet how to handle
+      // a zero-width range.
+      { location: startOffset, length: 0 },
+      0 as NSAttributedStringEnumerationOptions,
+      (
+        attribute: NSTextAttachment,
+        _range: NSRange,
+        // stop: interop.Pointer | interop.Reference<boolean>,
+      ) => {
+        // Should ideally check whether attribute really is an NSTextAttachment,
+        // as they do here: https://stackoverflow.com/a/33961204/5951226
+
+        attribute.bounds = CGRectMake(
+          0,
+          0,
+          attribute.bounds.size.width,
+          height,
+        );
+
+        // TODO: would be nice to know the NativeScript API to stop this loop
+      },
+    );
   }
 }
 

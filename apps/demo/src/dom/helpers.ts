@@ -2,6 +2,7 @@ import type { Block } from "./block";
 import { nodeNames, nodeTypes } from "./constants";
 import type { FlowElement } from "./element";
 import type { Inline } from "./inline";
+import type { InlineBlock } from "./inline-block";
 import type { FlowNode } from "./node";
 import type { FlowText } from "./text";
 import { tree } from "./tree";
@@ -40,4 +41,7 @@ export function isInline(value: FlowNode): value is Inline {
 }
 export function isBlock(value: FlowNode): value is Block {
   return value.nodeName === nodeNames.Block;
+}
+export function isInlineBlock(value: FlowNode): value is InlineBlock {
+  return value.nodeName === nodeNames.InlineBlock;
 }

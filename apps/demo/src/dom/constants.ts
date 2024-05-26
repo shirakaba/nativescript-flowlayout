@@ -8,5 +8,6 @@ export const nodeTypes = {
 export const nodeNames = {
   Block: "BLOCK",
   Inline: "INLINE",
+  InlineBlock: "INLINEBLOCK",
   Text: "#text",
 } as const;

@@ -1,6 +1,6 @@
 import { nodeNames } from "./constants";
 import { FlowElement } from "./element";
-import { closest, isBlock, isInline, isText } from "./helpers";
+import { isInline, isText } from "./helpers";
 import type { FlowNode } from "./node";
 
 /**
@@ -21,6 +21,8 @@ export class Inline extends FlowElement {
     if (!isInline(node) && !isText(node)) {
       throw new Error("Can only add Inline or Text to an Inline.");
     }
+
+    // TODO: support adding InlineBlock
 
     const appended = super.appendChild(node);
 
@@ -48,10 +50,5 @@ export class Inline extends FlowElement {
     this.block?.onDescendantDidUpdateAttributes(this);
 
     return true;
-  }
-
-  /** The closest Block ancestor, or null if there is none. */
-  private get block() {
-    return closest(this, isBlock);
   }
 }

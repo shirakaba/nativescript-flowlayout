@@ -9,6 +9,7 @@ import type { EventData, Page } from "@nativescript/core";
 
 import { Block } from "./dom/block";
 import { Inline } from "./dom/inline";
+import { InlineBlock } from "./dom/inline-block";
 import { FlowText } from "./dom/text";
 import { HelloWorldModel } from "./main-view-model";
 
@@ -29,7 +30,17 @@ export function navigatingTo(args: EventData) {
   block.setAttribute(NSUnderlineStyleAttributeName, NSUnderlineStyle.Single);
   block.setAttribute(NSFontAttributeName, UIFont.systemFontOfSize(36));
 
+  const inlineBlock = new InlineBlock();
+  // width: 0, height: 0 seems to behave as "auto", which may be a blessing and
+  // a curse
+  inlineBlock.width = 0;
+  inlineBlock.height = 0;
+
   for (let i = 0; i < 3; i++) {
+    if (i === 1) {
+      block.appendChild(inlineBlock);
+    }
+
     const inline = new Inline();
     inline.appendChild(new FlowText(`[${i}] lorem ipsum dolor sit amet, `));
     inline.setAttribute(
@@ -42,20 +53,30 @@ export function navigatingTo(args: EventData) {
   // Some extra tests once we've already pushed the initial Inlines into the
   // Block:
 
-  // Prove that we can update attributes.
-  const [firstInline, middleInline, lastInline] = [...block.childNodes] as [
+  const [inline0, _inlineBlock1, _inline2, inline3] = [...block.childNodes] as [
     Inline,
+    InlineBlock,
     Inline,
     Inline,
   ];
-  lastInline.setAttribute(NSForegroundColorAttributeName, UIColor.redColor);
+  // Prove that we can update attributes.
+  inline3.setAttribute(NSForegroundColorAttributeName, UIColor.redColor);
 
-  // Prove that we can update text.
-  const textNode = [...middleInline.childNodes][0] as FlowText;
-  textNode.data = "[1] updated text! ";
+  // TODO: I'm not clear whether our inline block is inserting at the right
+  // index, nor whether the other nodes are playing correctly with it. When I
+  // uncommented this, the UIImage disappeared. Maybe it's a complication of
+  // NSTextAttachment being 0 characters wide, that if you replace characters
+  // starting at its edge, it gets deleted due to the ambiguous range. We'll
+  // have to either check for the presence of a zero-character NSTextAttachment
+  // before running `this.textStorage.replaceCharactersInRangeWithString()` and
+  // ensure to reattach it or keep it attached; or remove it from the DOM tree
+  // in response to any time it gets removed from the native tree.
+  // // Prove that we can update text.
+  // const textNode = [...inline2.childNodes][0] as FlowText;
+  // textNode.data = "[1] updated text! ";
 
   // Prove that we can insert a second FlowText into an inline.
-  firstInline.appendChild(new FlowText("[0a] Inserted text node. "));
+  inline0.appendChild(new FlowText("[0a] Inserted text node. "));
 
   // Prove that we can insert a second Inline into an Inline.
   const anotherInline = new Inline();
@@ -64,7 +85,7 @@ export function navigatingTo(args: EventData) {
     NSForegroundColorAttributeName,
     UIColor.greenColor,
   );
-  firstInline.appendChild(anotherInline);
+  inline0.appendChild(anotherInline);
 
   // Once the native view from Core has been populated, insert our view into it.
   content.addEventListener("loaded", () => {
