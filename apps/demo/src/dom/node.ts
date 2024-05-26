@@ -1,6 +1,10 @@
 import { tree } from "./tree";
 
-export abstract class NodeImpl implements Pick<Node, "nodeName" | "nodeType"> {
+/**
+ * The base-level node of the FlowLayout tree, based on Node from the DOM spec.
+ * @see Node
+ */
+export abstract class FlowNode {
   /**
    * Warning: Implements only a subset of NodeListOf<T> (just Symbol.iterator).
    */
@@ -15,10 +19,10 @@ export abstract class NodeImpl implements Pick<Node, "nodeName" | "nodeType"> {
   abstract nodeName: string;
   abstract nodeType: number;
 
-  appendChild<T extends NodeImpl>(node: T): T {
+  appendChild<T extends FlowNode>(node: T): T {
     return tree.appendChild(this, node);
   }
-  removeChild<T extends NodeImpl>(child: T): T {
+  removeChild<T extends FlowNode>(child: T): T {
     return tree.remove(child);
   }
 }

@@ -9,7 +9,7 @@ import type { EventData, Page } from "@nativescript/core";
 
 import { Block } from "./dom/block";
 import { Inline } from "./dom/inline";
-import { TextImpl } from "./dom/text";
+import { FlowText } from "./dom/text";
 import { HelloWorldModel } from "./main-view-model";
 
 // CoreText came with macOS Cocoa; TextKit 1 and TextKit 2 came with iOS.
@@ -31,7 +31,7 @@ export function navigatingTo(args: EventData) {
 
   for (let i = 0; i < 3; i++) {
     const inline = new Inline();
-    inline.appendChild(new TextImpl(`[${i}] lorem ipsum dolor sit amet, `));
+    inline.appendChild(new FlowText(`[${i}] lorem ipsum dolor sit amet, `));
     inline.setAttribute(
       NSForegroundColorAttributeName,
       i % 2 === 0 ? UIColor.systemMintColor : UIColor.blueColor,
@@ -48,7 +48,7 @@ export function navigatingTo(args: EventData) {
   lastInline.setAttribute(NSForegroundColorAttributeName, UIColor.redColor);
 
   // Prove that we can update text post-insertion
-  const textNode = [...middleInline.childNodes][0] as TextImpl;
+  const textNode = [...middleInline.childNodes][0] as FlowText;
   textNode.data = "[1] …updated! ";
 
   content.addEventListener("loaded", () => {

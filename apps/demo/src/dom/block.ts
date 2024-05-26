@@ -1,14 +1,18 @@
 import { Inline } from "./inline";
-import { NodeImpl } from "./node";
-import { TextImpl } from "./text";
+import { FlowNode } from "./node";
+import { FlowText } from "./text";
 import { isInline, tree } from "./tree";
 
 const recycledEmptyObject = Object.freeze({});
 
 /**
  * Allowed children: Inline.
+ *
+ * A stylable container with block display mode, based on Element from the DOM
+ * spec.
+ * @see Element
  */
-export class Block extends NodeImpl {
+export class Block extends FlowNode {
   static {
     this.prototype.nodeName = "BLOCK";
     this.prototype.nodeType = 1;
@@ -126,7 +130,7 @@ export class Block extends NodeImpl {
     return attributes;
   }
 
-  appendChild<T extends NodeImpl>(node: T): T {
+  appendChild<T extends FlowNode>(node: T): T {
     if (!isInline(node)) {
       throw new Error("Block can only append child nodes of type Inline.");
     }
@@ -136,7 +140,7 @@ export class Block extends NodeImpl {
     const appended = super.appendChild(node);
 
     for (const childNode of node.childNodes) {
-      if (childNode instanceof TextImpl) {
+      if (childNode instanceof FlowText) {
         const attributes = Block.resolveAttributes(node);
         console.log(
           `[Block] Appending inline "${childNode.data}"`,
@@ -179,7 +183,7 @@ export class Block extends NodeImpl {
    * @returns
    */
   private static getStartOffsetOfDescendant(
-    descendant: NodeImpl,
+    descendant: FlowNode,
     traverseUntilAncestor?: Block,
   ) {
     let startOffset = 0;
@@ -212,12 +216,12 @@ export class Block extends NodeImpl {
    * this Block instance can update the text contents across the corresponding
    * range.
    *
-   * @param descendant The descendant TextImpl that updated.
-   * @param prevData The previous data of that TextImpl.
-   * @param newData The data that TextImpl has just updated to.
+   * @param descendant The descendant FlowText that updated.
+   * @param prevData The previous data of that FlowText.
+   * @param newData The data that FlowText has just updated to.
    */
   onDescendantDidUpdateData(
-    descendant: TextImpl,
+    descendant: FlowText,
     prevData: string,
     newData: string,
   ) {

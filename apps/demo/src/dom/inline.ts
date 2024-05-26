@@ -1,10 +1,14 @@
-import { NodeImpl } from "./node";
+import { FlowNode } from "./node";
 import { closest, isBlock, isInline, isText } from "./tree";
 
 /**
- * Allowed children: Inline, TextImpl.
+ * Allowed children: Inline, FlowText.
+ *
+ * A stylable container with inline display mode, based on Element from the DOM
+ * spec.
+ * @see Element
  */
-export class Inline extends NodeImpl {
+export class Inline extends FlowNode {
   static {
     this.prototype.nodeName = "INLINE";
     this.prototype.nodeType = 1;
@@ -24,7 +28,7 @@ export class Inline extends NodeImpl {
     return data;
   }
 
-  appendChild<T extends NodeImpl>(node: T): T {
+  appendChild<T extends FlowNode>(node: T): T {
     if (!isInline(node) && !isText(node)) {
       throw new Error("Can only add Inline or Text to an Inline.");
     }

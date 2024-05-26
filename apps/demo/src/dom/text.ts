@@ -1,10 +1,11 @@
-import { NodeImpl } from "./node";
-import { closest, isBlock, tree } from "./tree";
+import { FlowNode } from "./node";
+import { closest, isBlock, isText, tree } from "./tree";
 
-export class TextImpl
-  extends NodeImpl
-  implements Pick<CharacterData, "data" | "length">, Pick<Text, "wholeText">
-{
+/**
+ * A leaf node representing a text fragment, based on Text from the DOM spec.
+ * @see Text
+ */
+export class FlowText extends FlowNode {
   static {
     this.prototype.nodeName = "#text";
     this.prototype.nodeType = 3;
@@ -35,7 +36,7 @@ export class TextImpl
   get wholeText(): string {
     let precedingText = "";
     for (const prevSibling of tree.previousSiblingsIterator(this)) {
-      if (!(prevSibling instanceof TextImpl)) {
+      if (!isText(prevSibling)) {
         break;
       }
       precedingText = `${prevSibling.data}${precedingText}`;
@@ -43,7 +44,7 @@ export class TextImpl
 
     let followingText = "";
     for (const nextSibling of tree.nextSiblingsIterator(this)) {
-      if (!(nextSibling instanceof TextImpl)) {
+      if (!isText(nextSibling)) {
         break;
       }
       followingText = `${followingText}${nextSibling.data}`;
