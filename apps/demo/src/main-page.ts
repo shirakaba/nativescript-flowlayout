@@ -50,6 +50,9 @@ export function navigatingTo(args: EventData) {
     block.appendChild(inline);
   }
 
+  inlineBlock.width = 50;
+  inlineBlock.height = 50;
+
   // Some extra tests once we've already pushed the initial Inlines into the
   // Block:
 

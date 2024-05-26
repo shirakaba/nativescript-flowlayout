@@ -23,7 +23,7 @@ export class InlineBlock extends FlowElement {
   }
   set width(value: number) {
     this._width = value;
-    this.block?.onDescendantDidUpdateWidth(this, value);
+    this.block?.onDescendantDidUpdateSize(this, value, "width");
   }
 
   private _height!: number;
@@ -32,6 +32,6 @@ export class InlineBlock extends FlowElement {
   }
   set height(value: number) {
     this._height = value;
-    this.block?.onDescendantDidUpdateHeight(this, value);
+    this.block?.onDescendantDidUpdateSize(this, value, "height");
   }
 }

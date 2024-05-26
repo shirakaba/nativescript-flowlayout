@@ -236,82 +236,60 @@ export class Block extends FlowElement {
   /**
    * TODO: check this works, via restyling an InlineBlock post-insertion.
    *
-   * Descendant InlineBlocks should call this method upon any width update, so
-   * that this Block instance can update the width of the corresponding
+   * Descendant InlineBlocks should call this method upon any size update, so
+   * that this Block instance can update the size of the corresponding
    * NSTextAttachment.
    */
-  onDescendantDidUpdateWidth(descendant: InlineBlock, width: number) {
+  onDescendantDidUpdateSize(
+    descendant: InlineBlock,
+    value: number,
+    dimension: "width" | "height",
+  ) {
     if (!isInlineBlock(descendant)) {
       // Only act upon descendants that manage width.
       return;
     }
 
     const startOffset = getStartOffsetOfDescendant(descendant);
+    console.log(`onDescendantDidUpdateWidth startOffset: ${startOffset}`);
 
     this.textStorage.enumerateAttributeInRangeOptionsUsingBlock(
       NSAttachmentAttributeName,
-      // May have to widen this to at least length 1. Not sure yet how to handle
-      // a zero-width range.
-      { location: startOffset, length: 0 },
+      // This function only runs if length is at least 1.
+      { location: startOffset, length: 1 },
       0 as NSAttributedStringEnumerationOptions,
       (
-        attribute: NSTextAttachment,
-        _range: NSRange,
-        // stop: interop.Pointer | interop.Reference<boolean>,
+        /**
+         * In practice, this will be the attribute. It'd only be null if we
+         * iterated onto a character lacking the attribute.
+         */
+        attribute: NSObject | null,
+        /**
+         * While `range.length` will be constant, `range.location` increments as
+         * the function enumerates over the string.
+         */
+        range: NSRange,
+        /**
+         * An inout reference to allow us to stop enumeration early. I'm not
+         * sure what the NativeScript API is for using it, so we'll be leaving
+         * it for now. Fortunately, we're only enumerating one character anyway.
+         */
+        _stop: interop.Pointer | interop.Reference<boolean>,
       ) => {
-        // Should ideally check whether attribute really is an NSTextAttachment,
-        // as they do here: https://stackoverflow.com/a/33961204/5951226
-
-        console.log("Enumerating attribute", attribute);
-        attribute.bounds = CGRectMake(
-          0,
-          0,
-          width,
-          attribute.bounds.size.height,
+        console.log(
+          `Enumerating attribute at range ${range.location} / ${startOffset + range.length - 1}`,
+          attribute,
         );
+        if (!(attribute instanceof NSTextAttachment)) {
+          return;
+        }
 
-        // TODO: would be nice to know the NativeScript API to stop this loop
-      },
-    );
-  }
+        const size = attribute.bounds.size;
+        const width = dimension === "width" ? value : size.width;
+        const height = dimension === "height" ? value : size.height;
 
-  /**
-   * TODO: check this works, via restyling an InlineBlock post-insertion.
-   *
-   * Descendant InlineBlocks should call this method upon any height update, so
-   * that this Block instance can update the height of the corresponding
-   * NSTextAttachment.
-   */
-  onDescendantDidUpdateHeight(descendant: InlineBlock, height: number) {
-    if (!isInlineBlock(descendant)) {
-      // Only act upon descendants that manage height.
-      return;
-    }
-
-    const startOffset = getStartOffsetOfDescendant(descendant);
-
-    this.textStorage.enumerateAttributeInRangeOptionsUsingBlock(
-      NSAttachmentAttributeName,
-      // May have to widen this to at least length 1. Not sure yet how to handle
-      // a zero-width range.
-      { location: startOffset, length: 0 },
-      0 as NSAttributedStringEnumerationOptions,
-      (
-        attribute: NSTextAttachment,
-        _range: NSRange,
-        // stop: interop.Pointer | interop.Reference<boolean>,
-      ) => {
-        // Should ideally check whether attribute really is an NSTextAttachment,
-        // as they do here: https://stackoverflow.com/a/33961204/5951226
-
-        attribute.bounds = CGRectMake(
-          0,
-          0,
-          attribute.bounds.size.width,
-          height,
-        );
-
-        // TODO: would be nice to know the NativeScript API to stop this loop
+        // Have to set bounds rather than bounds.size.
+        attribute.bounds = CGRectMake(0, 0, width, height);
       },
     );
   }
