@@ -6,12 +6,14 @@
   "dependencies": {
     "@nativescript/core": "~8.6.0",
     "@nativescript/ios": "^8.6.3",
-    "@repo/flowlayout": "workspace:*"
+    "@repo/flowlayout": "workspace:*",
+    "symbol-tree": "^3.2.4"
   },
   "devDependencies": {
     "@nativescript/types": "~8.6.0",
     "@nativescript/types-ios": "^8.7.0",
     "@nativescript/webpack": "~5.0.18",
+    "@types/symbol-tree": "^3.2.5",
     "typescript": "~5.2.0"
   }
 }

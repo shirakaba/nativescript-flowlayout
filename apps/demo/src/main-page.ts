@@ -1,13 +1,51 @@
+/* eslint-disable unicorn/prefer-dom-node-remove */
+/* eslint-disable unicorn/prefer-dom-node-append */
+/* eslint-disable @typescript-eslint/no-unsafe-declaration-merging */
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /// <reference types="@nativescript/types-ios" />
 
 import type { EventData, Page } from "@nativescript/core";
 import { dataSerialize } from "@nativescript/core/utils/native-helper.ios";
+import * as SymbolTree from "symbol-tree";
+import type * as TreeIterator from "symbol-tree/lib/TreeIterator";
 
 import { HelloWorldModel } from "./main-view-model";
 
 const recycledEmptyObject = Object.freeze({});
+
+// We can manage with one central tree, as it has no singular root. Effectively,
+// the way to express a "connected" tree is just to designate a certain node as
+// being a RootNode (like Document), and saying that a node is "connected" if it
+// has a RootNode ancestor.
+//
+// If a parent is removed from the tree, it still maintains its connections to
+// all its children (and they to theirs), so we can express disconnected trees.
+// https://github.com/jsdom/js-symbol-tree/blob/77dc2877246d91f3b82d0fbc6ae80ef7d5618b80/test/SymbolTree.js#L363
+// https://github.com/jsdom/js-symbol-tree/blob/77dc2877246d91f3b82d0fbc6ae80ef7d5618b80/lib/SymbolTree.js#L645
+const tree = new SymbolTree<BaseNode>("flow layout");
+
+// Currently TextNode extends this, which means it has to return `never` for
+// some of these hierarchy methods (it is a leaf node). Kinda shows we should
+// follow what DOM does instead (Node, Text, and Element). Let's refactor later.
+class BaseNode {
+  get parent() {
+    return tree.parent(this);
+  }
+  get children() {
+    return tree.childrenIterator(this);
+  }
+
+  // Not yet sure about these two. We have addTextNode() and addInline(), but
+  // we could replace them by overriding appendChild() and doing an instanceof
+  // check.
+  appendChild(child: BaseNode) {
+    tree.appendChild(this, child);
+  }
+  removeChild(child: BaseNode) {
+    tree.remove(child);
+  }
+}
 
 // CoreText came with macOS Cocoa; TextKit 1 and TextKit 2 came with iOS.
 // https://github.com/objcio/issue-5-textkit/tree/master/TextKitDemo
@@ -15,7 +53,12 @@ const recycledEmptyObject = Object.freeze({});
 // https://www.objc.io/issues/5-ios7/getting-to-know-textkit/
 // https://developer.apple.com/library/archive/documentation/Cocoa/Conceptual/TextLayout/TextLayout.html#//apple_ref/doc/uid/10000158i
 
-class Block {
+interface Block {
+  get children(): TreeIterator<Inline>;
+  appendChild(child: Inline): void;
+  removeChild(child: Inline): void;
+}
+class Block extends BaseNode {
   // One textStorage can hold multiple layoutManagers.
   //
   // Allows multiple visual representations of the same text that can be placed
@@ -37,6 +80,7 @@ class Block {
   readonly textContainer = NSTextContainer.new();
 
   constructor() {
+    super();
     this.textStorage.addLayoutManager(this.layoutManager);
     this.layoutManager.addTextContainer(this.textContainer);
   }
@@ -54,7 +98,7 @@ class Block {
     // Alternatively, we could do this without referring to the JS model at all
     // - we could just iterate through all the attributed string children
     // directly, setting the attribute only if it's missing.
-    for (const inline of this.inlines) {
+    for (const inline of this.children) {
       inline.setAttribute(key, value);
     }
   }
@@ -65,30 +109,22 @@ class Block {
     }
     delete this.attributes[key];
 
-    for (const inline of this.inlines) {
+    for (const inline of this.children) {
       inline.deleteAttribute(key);
     }
   }
 
-  /**
-   * To be updated, by the parent, upon insertion and removal.
-   */
-  parent: Block | null = null;
-
-  private inlines = new Array<Inline>();
-
   addInline(inline: Inline) {
     // Need to set this from the start, as the TextNode grandchildren will be
     // climbing up to here during updateAttributes
-    inline.parent = this;
-    this.inlines.push(inline);
+    this.appendChild(inline);
 
-    for (const childNode of inline.getChildNodes()) {
+    for (const childNode of inline.children) {
       if (childNode instanceof TextNode) {
         // Update attributes (i.e. resolve the style cascade) before insertion
         // into the native tree.
         console.log(
-          `[Block] updating attributes for "${childNode.data}". Parent is set: ${childNode.parent === inline}; Grandparent is set: ${inline.parent === this}`,
+          `[Block] updating attributes for "${childNode.data}".`,
           dataSerialize(this.attributes),
         );
         childNode.updateAttributes();
@@ -101,12 +137,7 @@ class Block {
   }
 
   removeInline(inline: Inline) {
-    const index = this.inlines.indexOf(inline);
-    if (index === -1) {
-      return;
-    }
-    this.inlines.splice(index, 1);
-    inline.parent = null;
+    this.removeChild(inline);
   }
 
   /**
@@ -120,9 +151,16 @@ class Block {
   }
 }
 
-class TextNode {
+interface TextNode {
+  get parent(): Inline | null;
+  get children(): TreeIterator<never>;
+  appendChild(child: never): void;
+  removeChild(child: never): void;
+}
+class TextNode extends BaseNode {
   private _data: string;
   constructor(data = "") {
+    super();
     this._data = data;
   }
   get data() {
@@ -133,34 +171,24 @@ class TextNode {
    * attributes.
    */
   set data(value: string) {
+    const prevData = this._data;
     this._data = value;
 
-    this.parent?.onChildTextNodeDidUpdateData(this);
+    this.parent?.onChildTextNodeDidUpdateData(this, prevData);
   }
-
-  /**
-   * To be updated, by the parent, upon insertion and removal.
-   */
-  parent: Inline | null = null;
 
   appendData(data: string) {
     this._data += data;
   }
 }
 
-class Inline {
-  private _childNodes = new Array<TextNode | Inline>();
-  /**
-   * To be updated, by the parent, upon insertion and removal.
-   */
-  parent: Block | Inline | null = null;
-
-  *getChildNodes() {
-    for (const childNode of this._childNodes) {
-      yield childNode;
-    }
-  }
-
+interface Inline {
+  get parent(): Block | Inline | null;
+  get children(): TreeIterator<Inline | TextNode>;
+  appendChild(child: Inline | TextNode): void;
+  removeChild(child: Inline | TextNode): void;
+}
+class Inline extends BaseNode {
   // This is getting hard. Will try to port _referencedRanges and CharacterData
   // from JSDOM instead.
   //
@@ -170,9 +198,59 @@ class Inline {
   onChildInlineDidUpdateData(child: Inline) {
     this.parent?.onChildInlineDidUpdateData(this);
   }
-  onChildTextNodeDidUpdateData(_child: TextNode) {
-    this.parent?.onChildInlineDidUpdateData(this);
+  onChildTextNodeDidUpdateData(updatedChild: TextNode, previousData: string) {
+    const payload = Inline.getPayload({
+      updatedTextNode: updatedChild,
+      inline: this,
+      startOffset: 0,
+      previousData,
+    });
+
+    // this.parent?.onChildInlineDidUpdateData(this);
+
+    // TODO: convey payload to parent (which is complicated by it being
+    // Inline | Block).
   }
+
+  private static getPayload({
+    updatedTextNode,
+    inline,
+    startOffset,
+    previousData,
+  }: {
+    updatedTextNode: TextNode;
+    inline: Inline;
+    startOffset: number;
+    previousData: string;
+  }) {
+    for (const childNode of inline.children) {
+      if (childNode instanceof TextNode) {
+        if (childNode === updatedTextNode) {
+          return {
+            startOffset,
+            previousData,
+            updatedData: childNode.data,
+          };
+        }
+
+        startOffset += childNode.data.length;
+        continue;
+      }
+
+      const payload = this.getPayload({
+        updatedTextNode,
+        inline: childNode,
+        startOffset,
+        previousData,
+      });
+      if (payload) {
+        return payload;
+      }
+    }
+
+    return null;
+  }
+
   onChildInlineDidUpdateAttributes(_child: Inline) {
     //
   }
@@ -181,29 +259,17 @@ class Inline {
   }
 
   addTextNode(textNode: TextNode) {
-    textNode.parent = this;
-    this._childNodes.push(textNode);
+    this.appendChild(textNode);
     // FIXME: needs to inform parent Block of insertion
   }
   removeTextNode(textNode: TextNode) {
-    const index = this._childNodes.indexOf(textNode);
-    if (index === -1) {
-      return;
-    }
-    this._childNodes.splice(index, 1);
-    textNode.parent = null;
+    this.removeChild(textNode);
   }
   addInline(inline: Inline) {
-    this._childNodes.push(inline);
-    inline.parent = this;
+    this.appendChild(inline);
   }
   removeInline(inline: Inline) {
-    const index = this._childNodes.indexOf(inline);
-    if (index === -1) {
-      return;
-    }
-    this._childNodes.splice(index, 1);
-    inline.parent = null;
+    this.removeChild(inline);
   }
   attributes?: Record<string, unknown>;
   setAttribute(key: string, value: unknown) {
@@ -214,10 +280,10 @@ class Inline {
 
     // Iterate over all inlines and cascade styles down to descendants (allowing
     // clobbering by more specific styles).
-    for (const childNode of this.getChildNodes()) {
+    for (const childNode of this.children) {
       if (childNode instanceof TextNode) {
         console.log(
-          `[Inline] updating attributes for "${childNode.data}". Parent is set: ${childNode.parent === this}; Grandparent is set: ${this.parent instanceof Block}`,
+          `[Inline] updating attributes for "${childNode.data}".`,
           dataSerialize(this.attributes),
         );
         childNode.updateAttributes();
@@ -233,7 +299,7 @@ class Inline {
     }
     delete this.attributes[key];
 
-    for (const childNode of this.getChildNodes()) {
+    for (const childNode of this.children) {
       if (childNode instanceof TextNode) {
         childNode.updateAttributes();
         continue;
