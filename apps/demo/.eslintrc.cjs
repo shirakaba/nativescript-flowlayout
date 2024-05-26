@@ -15,5 +15,7 @@ module.exports = {
   ignorePatterns: ["/hooks"],
   rules: {
     "@typescript-eslint/triple-slash-reference": "off",
+    "unicorn/prefer-dom-node-append": "off",
+    "unicorn/prefer-dom-node-remove": "off",
   },
 };
