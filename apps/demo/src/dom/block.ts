@@ -1,7 +1,7 @@
 import { Inline } from "./inline";
 import { NodeImpl } from "./node";
 import { TextImpl } from "./text";
-import { climbAncestors, isInline, tree } from "./tree";
+import { isInline, tree } from "./tree";
 
 const recycledEmptyObject = Object.freeze({});
 
@@ -94,14 +94,18 @@ export class Block extends NodeImpl {
   }
 
   /**
-   * Walks up the DOM parents to resolve the attributes to apply.
+   * Walks up the DOM ancestors (including self) to resolve the attributes to
+   * apply.
    */
   private static resolveAttributes(inline: Inline | Block) {
     let attributes: Record<string, unknown> | undefined;
 
-    for (const ancestor of climbAncestors(inline) as Generator<
+    for (const ancestor of tree.ancestorsIterator(inline) as Generator<
       Inline | Block
     >) {
+      // console.log(
+      //   `[resolveAttributes] climbAncestors(<${inline.nodeName.toLowerCase()}>${inline.textContent}</${inline.nodeName.toLowerCase()}>): <${ancestor.nodeName.toLowerCase()}>${ancestor.textContent}</${ancestor.nodeName.toLowerCase()}>`,
+      // );
       if (!ancestor.attributes) {
         continue;
       }
@@ -246,6 +250,12 @@ export class Block extends NodeImpl {
           length: descendant.textContent.length,
         },
       );
+
+      // console.log(`[onDescendantDidUpdateAttributes]`, {
+      //   startOffset,
+      //   length: descendant.textContent.length,
+      //   attributes,
+      // });
     }
   }
 }

@@ -37,20 +37,19 @@ export function navigatingTo(args: EventData) {
       i % 2 === 0 ? UIColor.systemMintColor : UIColor.blueColor,
     );
     block.appendChild(inline);
-
-    // FIXME: ensure update runs when we set attribute post-hoc.
-    inline.setAttribute(NSForegroundColorAttributeName, UIColor.redColor);
-    // Is it the case that we just can't change attributes anymore once the
-    // attributed string is appended?
-    inline.setAttribute(
-      NSForegroundColorAttributeName,
-      UIColor.systemBrownColor,
-    );
   }
 
-  // No idea why attribute-setting is failing to be reflected visually, beyond
-  // the fact that we've moved from ready-initialized NSAttributedStrings to
-  // setting attributes dynamically on NSMutableAttributedStrings.
+  // Prove that we can update attributes post-insertion
+  const [, middleInline, lastInline] = [...block.childNodes] as [
+    Inline,
+    Inline,
+    Inline,
+  ];
+  lastInline.setAttribute(NSForegroundColorAttributeName, UIColor.redColor);
+
+  // Prove that we can update text post-insertion
+  const textNode = [...middleInline.childNodes][0] as TextImpl;
+  textNode.data = "[1] …updated! ";
 
   content.addEventListener("loaded", () => {
     console.log("loaded!");
