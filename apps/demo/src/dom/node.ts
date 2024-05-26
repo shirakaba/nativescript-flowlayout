@@ -17,9 +17,16 @@ export abstract class FlowNode {
   abstract nodeType: number;
 
   appendChild<T extends FlowNode>(node: T): T {
+    // Unlike the same-named DOM method, symbol-tree will throw rather than
+    // reparent a child with an existing parent.
+    // https://github.com/jsdom/js-symbol-tree/blob/77dc2877246d91f3b82d0fbc6ae80ef7d5618b80/test/SymbolTree.js#L400
+    node.parentNode?.removeChild(node);
+
     return tree.appendChild(this, node);
   }
   removeChild<T extends FlowNode>(child: T): T {
+    // symbol-tree effectively no-ops if the child already lacks a parentNode.
+
     return tree.remove(child);
   }
 }
