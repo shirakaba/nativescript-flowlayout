@@ -65,16 +65,6 @@ export function navigatingTo(args: EventData) {
   // Prove that we can update attributes.
   inline3.setAttribute(NSForegroundColorAttributeName, UIColor.redColor);
 
-  // TODO: I'm not clear whether our inline block is inserting at the right
-  // index, nor whether the other nodes are playing correctly with it. When I
-  // uncommented this, the UIImage disappeared. Maybe it's a complication of
-  // NSTextAttachment being 0 characters wide, that if you replace characters
-  // starting at its edge, it gets deleted due to the ambiguous range. We'll
-  // have to either check for the presence of a zero-character NSTextAttachment
-  // before running `this.textStorage.replaceCharactersInRangeWithString()` and
-  // ensure to reattach it or keep it attached; or remove it from the DOM tree
-  // in response to any time it gets removed from the native tree.
-  // // Prove that we can update text.
   const textNode = [...inline2.childNodes][0] as FlowText;
   console.log("inline2.childNodes", textNode.data);
   // Commmenting this in, I notice the string fails to appear at all.

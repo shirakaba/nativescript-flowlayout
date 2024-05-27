@@ -15,6 +15,14 @@ export class InlineBlock extends FlowElement {
     this.prototype._height = 0;
   }
 
+  // For now, assumes InlineBlock is a leaf node.
+  //
+  // `NSAttributedString.attributedStringWithAttachment(attachment)` produces a
+  // single-character string with this codepoint, so we reflect that here.
+  get textContent() {
+    return String.fromCodePoint(65_532);
+  }
+
   nodeName!: string;
 
   private _width!: number;
