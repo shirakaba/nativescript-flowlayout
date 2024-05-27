@@ -88,7 +88,16 @@ export class Block extends FlowElement {
 
         switch (key) {
           case NSUnderlineStyleAttributeName: {
+            // For explicit NSUnderlineStyle.None, should we push or not?
             codes.push("u");
+            break;
+          }
+          case NSForegroundColorAttributeName: {
+            codes.push("f");
+            break;
+          }
+          case NSBackgroundColorAttributeName: {
+            codes.push("b");
             break;
           }
           // Ignore these
@@ -97,6 +106,7 @@ export class Block extends FlowElement {
             break;
           }
           default: {
+            console.warn(`Got unknown attribute ${key}`);
             codes.push("?");
           }
         }
