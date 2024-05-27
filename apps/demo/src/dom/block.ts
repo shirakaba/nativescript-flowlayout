@@ -49,6 +49,10 @@ export class Block extends FlowElement {
     this.layoutManager.addTextContainer(this.textContainer);
   }
 
+  debugDescription() {
+    return this.textStorage.string;
+  }
+
   setAttribute(key: string, value: unknown) {
     super.setAttribute(key, value);
 
@@ -116,10 +120,10 @@ export class Block extends FlowElement {
     for (const childNode of node.childNodes) {
       if (isText(childNode)) {
         const attributes = resolveAttributes(node);
-        console.log(
-          `[Block] Appending inline "${childNode.data}"`,
-          attributes ?? "<no attributes>",
-        );
+        // console.log(
+        //   `[Block] Appending inline "${childNode.data}"`,
+        //   attributes ?? "<no attributes>",
+        // );
         const attributedString = createAttributedString(
           childNode.data,
           attributes,

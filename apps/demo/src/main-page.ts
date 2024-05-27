@@ -12,6 +12,7 @@ import { Inline } from "./dom/inline";
 import { InlineBlock } from "./dom/inline-block";
 import { FlowText } from "./dom/text";
 import { HelloWorldModel } from "./main-view-model";
+import { runAllTestSuites } from "./test";
 
 // CoreText came with macOS Cocoa; TextKit 1 and TextKit 2 came with iOS.
 // https://github.com/objcio/issue-5-textkit/tree/master/TextKitDemo
@@ -24,7 +25,7 @@ export function navigatingTo(args: EventData) {
   page.bindingContext = new HelloWorldModel();
 
   const content = page.content;
-  console.log(content);
+  // console.log(content);
 
   const block = new Block();
   block.setAttribute(NSUnderlineStyleAttributeName, NSUnderlineStyle.Single);
@@ -66,7 +67,7 @@ export function navigatingTo(args: EventData) {
   inline3.setAttribute(NSForegroundColorAttributeName, UIColor.redColor);
 
   const textNode = [...inline2.childNodes][0] as FlowText;
-  console.log("inline2.childNodes", textNode.data);
+  // console.log("inline2.childNodes", textNode.data);
   // Commmenting this in, I notice the string fails to appear at all.
   textNode.data = "[1] updated text! ";
 
@@ -84,19 +85,21 @@ export function navigatingTo(args: EventData) {
 
   // Once the native view from Core has been populated, insert our view into it.
   content.addEventListener("loaded", () => {
-    console.log("loaded!");
+    // console.log("loaded!");
     const rect = CGRectMake(0, 0, 394, 760);
     block.textContainer.size = rect.size;
     const tv = UITextView.alloc().initWithFrameTextContainer(
       rect,
       block.textContainer,
     );
-    console.log(
-      "textContainer.size",
-      tv.textContainer.size.width,
-      tv.textContainer.size.height,
-    );
+    // console.log(
+    //   "textContainer.size",
+    //   tv.textContainer.size.width,
+    //   tv.textContainer.size.height,
+    // );
     content.nativeView.addSubview(tv);
+
+    runAllTestSuites({ root: content.nativeView, stageSize: rect });
 
     // tv.frame can be updated at any time and causes reflow. Strangely, setting
     // the tv.frame updates the width of the text container as specified, but
