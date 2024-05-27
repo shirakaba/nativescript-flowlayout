@@ -49,8 +49,63 @@ export class Block extends FlowElement {
     this.layoutManager.addTextContainer(this.textContainer);
   }
 
-  debugDescription() {
-    return this.textStorage.string;
+  debugDescription(options?: {
+    styles?: true;
+    shortestEffectiveRanges?: true;
+  }) {
+    if (!options?.styles) {
+      return this.textStorage.string;
+    }
+
+    const fragments = new Array<{
+      attributes?: NSDictionary<string, unknown>;
+      text: string;
+    }>();
+    this.textStorage.enumerateAttributesInRangeOptionsUsingBlock(
+      { location: 0, length: this.textStorage.length },
+      options?.shortestEffectiveRanges
+        ? NSAttributedStringEnumerationOptions.LongestEffectiveRangeNotRequired
+        : (0 as NSAttributedStringEnumerationOptions),
+      (attributes, range, _stop) => {
+        // console.log(
+        //   `enumerate { location: ${range.location}, length: ${range.length} }`,
+        //   attributes,
+        // );
+        fragments.push({
+          attributes:
+            attributes instanceof NSDictionary ? attributes : undefined,
+          text: this.textStorage.attributedSubstringFromRange(range).string,
+        });
+      },
+    );
+
+    let result = "";
+    for (const { attributes, text } of fragments) {
+      const codes = new Array<string>();
+      attributes?.enumerateKeysAndObjectsUsingBlock((key) => {
+        // const value = attributes.valueForKey(key);
+        // console.log(`attribute ${key}`, value);
+
+        switch (key) {
+          case NSUnderlineStyleAttributeName: {
+            codes.push("u");
+            break;
+          }
+          // Ignore these
+          case "NSFont":
+          case "NSOriginalFont": {
+            break;
+          }
+          default: {
+            codes.push("?");
+          }
+        }
+      });
+      const code = codes.length ? `${codes.sort().join("")}:` : "";
+      result += `[${code}${text}]`;
+    }
+
+    return result;
   }
 
   setAttribute(key: string, value: unknown) {
@@ -73,9 +128,7 @@ export class Block extends FlowElement {
   }
 
   deleteAttribute(key: string) {
-    if (!super.deleteAttribute(key)) {
-      return false;
-    }
+    super.deleteAttribute(key);
 
     for (const inline of this.childNodes) {
       if (!isInline(inline)) {
@@ -85,8 +138,6 @@ export class Block extends FlowElement {
       }
       inline.deleteAttribute(key);
     }
-
-    return true;
   }
 
   appendChild<T extends FlowNode>(node: T): T {

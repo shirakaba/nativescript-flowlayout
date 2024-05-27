@@ -43,12 +43,12 @@ export class Inline extends FlowElement {
   }
 
   deleteAttribute(key: string) {
-    if (!super.deleteAttribute(key)) {
-      return false;
-    }
+    // Don't bail out even if this Inline lacked the attribute, because the way
+    // a Block deletes its own attributes is to call deleteAttribute on all its
+    // Inlines and then have them call back up to update the Block for the given
+    // text range that they manage.
+    super.deleteAttribute(key);
 
     this.block?.onDescendantDidUpdateAttributes(this);
-
-    return true;
   }
 }

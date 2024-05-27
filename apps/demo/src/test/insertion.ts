@@ -54,3 +54,25 @@ test("can nest Inlines", ({ block }) => {
   parent.appendChild(new FlowText("def"));
   assert.is(block.debugDescription(), "abcdef");
 });
+
+// Styled tests
+
+test("can style whole Block", ({ block }) => {
+  block.setAttribute(NSUnderlineStyleAttributeName, NSUnderlineStyle.Single);
+
+  // Inlines should inherit style from the Block:
+
+  // … when the Inline already has FlowText.
+  const inline = new Inline();
+  inline.appendChild(new FlowText("abc"));
+  block.appendChild(inline);
+  assert.is(block.debugDescription({ styles: true }), "[u:abc]");
+
+  // … when adding new FlowTexts to the Inline.
+  inline.appendChild(new FlowText("def"));
+  assert.is(block.debugDescription({ styles: true }), "[u:abcdef]");
+
+  // … when the Block deletes a style.
+  block.deleteAttribute(NSUnderlineStyleAttributeName);
+  assert.is(block.debugDescription({ styles: true }), "[abcdef]");
+});
