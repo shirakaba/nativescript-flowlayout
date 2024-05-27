@@ -56,7 +56,7 @@ export function navigatingTo(args: EventData) {
   // Some extra tests once we've already pushed the initial Inlines into the
   // Block:
 
-  const [inline0, _inlineBlock1, _inline2, inline3] = [...block.childNodes] as [
+  const [inline0, _inlineBlock1, inline2, inline3] = [...block.childNodes] as [
     Inline,
     InlineBlock,
     Inline,
@@ -75,8 +75,10 @@ export function navigatingTo(args: EventData) {
   // ensure to reattach it or keep it attached; or remove it from the DOM tree
   // in response to any time it gets removed from the native tree.
   // // Prove that we can update text.
-  // const textNode = [...inline2.childNodes][0] as FlowText;
-  // textNode.data = "[1] updated text! ";
+  const textNode = [...inline2.childNodes][0] as FlowText;
+  console.log("inline2.childNodes", textNode.data);
+  // Commmenting this in, I notice the string fails to appear at all.
+  textNode.data = "[1] updated text! ";
 
   // Prove that we can insert a second FlowText into an inline.
   inline0.appendChild(new FlowText("[0a] Inserted text node. "));

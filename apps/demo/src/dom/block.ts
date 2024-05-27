@@ -1,6 +1,13 @@
 import { nodeNames } from "./constants";
 import { FlowElement } from "./element";
-import { isBlock, isElement, isInline, isInlineBlock, isText } from "./helpers";
+import {
+  closest,
+  isBlock,
+  isElement,
+  isInline,
+  isInlineBlock,
+  isText,
+} from "./helpers";
 import type { Inline } from "./inline";
 import type { InlineBlock } from "./inline-block";
 import type { FlowNode } from "./node";
@@ -101,6 +108,7 @@ export class Block extends FlowElement {
 
       const attachment = NSTextAttachment.new();
       attachment.bounds = CGRectMake(0, 0, node.width, node.height);
+
       this.textStorage.appendAttributedString(
         NSAttributedString.attributedStringWithAttachment(attachment),
       );
@@ -149,14 +157,97 @@ export class Block extends FlowElement {
     newData: string,
   ) {
     const startOffset = getStartOffsetOfDescendant(descendant, this);
+    const textRange = { location: startOffset, length: prevData.length };
 
-    this.textStorage.replaceCharactersInRangeWithString(
-      {
-        location: startOffset,
-        length: prevData.length,
+    let attachments:
+      | Array<{ attachment: NSTextAttachment; offset: number }>
+      | undefined;
+
+    let rand = Math.random();
+
+    // Look for attachments that may be clobbered.
+    // If we ever get any other point attributes, we should do the same.
+    //
+    // Come to think of it, attachments are always one character wide, so why
+    // are we having problems? I've heard that this enumerate method doesn't
+    // behave quite as one would think (i.e. clearly doesn't fire only when it
+    // finds the attribute). But in particular I don't think there should be an
+    // attachment in the affected range in the first place. Indeed, why *is* it
+    // getting removed?
+    //
+    // Oh! Is it because we need to return a length of 1 from
+    // InlineBlock.textContent?
+    this.textStorage.enumerateAttributeInRangeOptionsUsingBlock(
+      NSAttachmentAttributeName,
+      { ...textRange },
+      0 as NSAttributedStringEnumerationOptions,
+      (attribute, range) => {
+        console.log(
+          `[onDescendantDidUpdateData] Given prevData "${prevData}" and rand ${rand}, enumerating attribute at range ${range.location} / ${startOffset + range.length - 1}`,
+          attribute,
+        );
+        if (attribute instanceof NSTextAttachment) {
+          attachments ||= [];
+          attachments.push({ attachment: attribute, offset: range.location });
+        }
       },
+    );
+
+    // this.textStorage.removeAttributeRange(NSAttachmentAttributeName, textRange);
+    this.textStorage.replaceCharactersInRangeWithString(
+      { ...textRange },
       newData,
     );
+
+    rand = Math.random();
+
+    this.textStorage.enumerateAttributeInRangeOptionsUsingBlock(
+      NSAttachmentAttributeName,
+      { ...textRange },
+      0 as NSAttributedStringEnumerationOptions,
+      (attribute, range) => {
+        console.log(
+          `[onDescendantDidUpdateData] Given prevData "${prevData}" and rand ${rand}, enumerating attribute at range ${range.location} / ${startOffset + range.length - 1}`,
+          attribute,
+        );
+      },
+    );
+
+    if (!attachments) {
+      return;
+    }
+
+    // Somehow, if there is an attachment in the way, the updated text gets
+    // inserted as plain, unstyled text. Maybe this indicates that we should
+    // always apply the styles of the nextSibling to an attachment when
+    // inserting it? Though unsure whether that'd handle the case of inserting
+    // text just before it an Inline with just an attachment inside (the
+    // attachment would have no nextSibling to get styles from). But maybe
+    // that's correct?
+    //
+    // But is "if there is an attachment in the way" accurate? When I
+    // pre-emptively remove the text attachment before replacing characters, we
+    // still end up inserting plain text. Needs investigation.
+    const inline = closest(descendant, isInline);
+    if (inline) {
+      this.onDescendantDidUpdateAttributes(inline);
+    }
+
+    // Restore clobbered attachments
+    for (const { attachment, offset } of attachments) {
+      if (offset !== startOffset) {
+        console.warn(
+          "TODO: handle clobbered attachments found at positions other than the exact start of the string.",
+        );
+        continue;
+      }
+
+      // console.log("Restoring attachment");
+      this.textStorage.insertAttributedStringAtIndex(
+        NSAttributedString.attributedStringWithAttachment(attachment),
+        offset,
+      );
+    }
   }
 
   /**
