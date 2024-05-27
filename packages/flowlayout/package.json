@@ -34,10 +34,9 @@
   "homepage": "https://github.com/shirakaba/nativescript-flowlayout/blob/main/packages/react-native-core",
   "readmeFilename": "README.md",
   "dependencies": {
-    "@nativescript/core": "~8.6.0"
+    "@nativescript/core": "~8.7.2"
   },
   "devDependencies": {
-    "@repo/tsconfig": "*",
     "typescript": "~5.2.0"
   }
 }

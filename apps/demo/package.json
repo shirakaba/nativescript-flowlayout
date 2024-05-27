@@ -1,5 +1,5 @@
 {
-  "name": "demo",
+  "name": "@repo/demo",
   "main": "src/app.ts",
   "version": "1.0.0",
   "private": true,
@@ -13,6 +13,7 @@
     "@nativescript/types-ios": "^8.7.0",
     "@nativescript/webpack": "~5.0.18",
     "@types/symbol-tree": "^3.2.5",
-    "typescript": "~5.2.0"
+    "typescript": "~5.2.0",
+    "uvu": "^0.5.6"
   }
 }
