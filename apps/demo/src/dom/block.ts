@@ -232,8 +232,6 @@ export class Block extends FlowElement {
   }
 
   /**
-   * TODO: check this works, via restyling an InlineBlock post-insertion.
-   *
    * Descendant InlineBlocks should call this method upon any size update, so
    * that this Block instance can update the size of the corresponding
    * NSTextAttachment.
@@ -244,12 +242,13 @@ export class Block extends FlowElement {
     dimension: "width" | "height",
   ) {
     if (!isInlineBlock(descendant)) {
-      // Only act upon descendants that manage width.
+      // Only act upon descendants that manage size. We'll have to revisit this
+      // once we support nesting blocks into blocks.
       return;
     }
 
     const startOffset = getStartOffsetOfDescendant(descendant);
-    console.log(`onDescendantDidUpdateWidth startOffset: ${startOffset}`);
+    console.log(`onDescendantDidUpdateSize startOffset: ${startOffset}`);
 
     this.textStorage.enumerateAttributeInRangeOptionsUsingBlock(
       NSAttachmentAttributeName,
