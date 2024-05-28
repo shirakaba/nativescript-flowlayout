@@ -3,7 +3,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-declaration-merging */
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-/// <reference types="@nativescript/types-ios" />
 
 import type { EventData, Page } from "@nativescript/core";
 
