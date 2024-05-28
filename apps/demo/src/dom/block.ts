@@ -41,7 +41,24 @@ export class Block extends FlowElement {
   // e.g. to allow paginated layout (with each page containing a separate view).
   private readonly layoutManager = NSLayoutManager.new();
 
+  // > An NSLayoutManager uses NSTextContainer to determine where to break lines,
+  // lay out portions of text, and so on.
+  //
+  // This is the object passed into the UITextView. So, to support nested
+  // Blocks in one UITextView, it would seem that we should have one "active"
+  // textContainer managed by the topmost Block. However, styles should still
+  // cascade from the topmost block down to all descendants, despite being
+  // different paragraphs (which is how HTML works, just not how Word works).
   readonly textContainer = NSTextContainer.new();
+
+  // Not sure whether NSParagraphStyle will be much help for implementing
+  // inter-block margin/padding, because it only works in the block direction
+  // and only when the parent is a Block (rather than a foreign layout manager
+  // like a Grid).
+  // https://papereditor.app/internals#styling
+  //
+  // We can surely implement padding using insets, however:
+  // https://papereditor.app/internals#text-container-math
 
   constructor() {
     super();
@@ -61,6 +78,8 @@ export class Block extends FlowElement {
       attributes?: NSDictionary<string, unknown>;
       text: string;
     }>();
+    // An explanation of how ranges work (they're relative):
+    // https://papereditor.app/internals#attributes
     this.textStorage.enumerateAttributesInRangeOptionsUsingBlock(
       { location: 0, length: this.textStorage.length },
       options?.shortestEffectiveRanges

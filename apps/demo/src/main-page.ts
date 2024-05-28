@@ -14,10 +14,13 @@ import { HelloWorldModel } from "./main-view-model";
 import { runAllTestSuites } from "./test";
 
 // CoreText came with macOS Cocoa; TextKit 1 and TextKit 2 came with iOS.
-// https://github.com/objcio/issue-5-textkit/tree/master/TextKitDemo
-// https://news.ycombinator.com/item?id=39603087
-// https://www.objc.io/issues/5-ios7/getting-to-know-textkit/
-// https://developer.apple.com/library/archive/documentation/Cocoa/Conceptual/TextLayout/TextLayout.html#//apple_ref/doc/uid/10000158i
+// - https://github.com/objcio/issue-5-textkit/tree/master/TextKitDemo
+// - https://news.ycombinator.com/item?id=39603087
+//   - https://papereditor.app/dev
+//   - https://papereditor.app/internals
+//   - https://papereditor.app/apple-rich-text
+// - https://www.objc.io/issues/5-ios7/getting-to-know-textkit/
+// - https://developer.apple.com/library/archive/documentation/Cocoa/Conceptual/TextLayout/TextLayout.html#//apple_ref/doc/uid/10000158i
 
 export function navigatingTo(args: EventData) {
   const page = <Page>args.object;
