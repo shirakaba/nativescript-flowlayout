@@ -1,5 +1,7 @@
 {
   "compilerOptions": {
+    "strict": true,
+    "allowSyntheticDefaultImports": true,
     "module": "esnext",
     "target": "ES2020",
     "moduleResolution": "node",
