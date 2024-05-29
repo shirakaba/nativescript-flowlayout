@@ -65,7 +65,7 @@ export abstract class FlowElement extends FlowNode {
   }
 
   /** The closest Block ancestor, or null if there is none. */
-  protected get block() {
+  get block() {
     return closest(this, isBlock);
   }
 }

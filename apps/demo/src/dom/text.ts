@@ -68,4 +68,9 @@ export class FlowText extends FlowNode {
   }
   nodeName!: string;
   nodeType!: number;
+
+  /** The closest Block ancestor, or null if there is none. */
+  get block() {
+    return closest(this, isBlock);
+  }
 }

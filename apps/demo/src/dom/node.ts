@@ -5,6 +5,12 @@ import { tree } from "./tree";
  * @see Node
  */
 export abstract class FlowNode {
+  get previousSibling() {
+    return tree.previousSibling(this);
+  }
+  get firstChild() {
+    return tree.firstChild(this);
+  }
   get childNodes() {
     return tree.childrenIterator(this);
   }

@@ -169,17 +169,52 @@ export class Block extends FlowElement {
     }
   }
 
+  /**
+   * Here, we observe the same rule that WebKit does.
+   *
+   * "All in-flow children of a block flow must be blocks, or all in-flow
+   * children of a block flow must be inlines."
+   * @see https://webkit.org/blog/115/webcore-rendering-ii-blocks-and-inlines/
+   */
+  private flowType: "block" | "inline" | null = null;
+
   appendChild<T extends FlowNode>(node: T): T {
-    if (!isInline(node) && !isInlineBlock(node)) {
+    // First, make sure it's a legal child. We don't support comment nodes or
+    // anything.
+    if (!isBlock(node) && !isInline(node) && !isInlineBlock(node)) {
       throw new Error(
-        "Block can only append child nodes of type Inline or InlineBlock.",
+        "Block can only append child nodes of type Block, Inline or InlineBlock.",
       );
     }
 
-    // Need to set this from the start, as the TextNode grandchildren will be
+    // Next, make sure the flow type is consistent with the existing children.
+    if (
+      (isBlock(node) && this.flowType === "inline") ||
+      this.flowType === "block"
+    ) {
+      throw new Error(
+        "All children of a Block flow must be of the same type (all Blocks, or all Inline/InlineBlocks).",
+      );
+    }
+
+    this.flowType = isBlock(node) ? "block" : "inline";
+
+    // If asked to append a Block, we should steal its native bits and assume
+    // ownership.
+
+    // Need to set this from the start, as the TextNode descendants will be
     // climbing up to here during updateAttributes
     const appended = super.appendChild(node);
 
+    this.renderAppendedChild(node);
+
+    return appended;
+  }
+
+  /**
+   * Update the textStorage based on the appended child (and its descendants).
+   */
+  private renderAppendedChild(node: Block | Inline | InlineBlock) {
     if (isInlineBlock(node)) {
       // Ignore descendants of InlineBlock for now; treat as a leaf node.
 
@@ -194,18 +229,29 @@ export class Block extends FlowElement {
       // any docs for it.
       // https://developer.apple.com/documentation/uikit/nstextattachmentviewprovider?language=objc
 
-      return appended;
+      return;
     }
 
     for (const childNode of node.childNodes) {
       if (isText(childNode)) {
         const attributes = resolveAttributes(node);
+
+        // Add line breaks between blocks.
+        // TODO: figure out:
+        // - the value returned by .textContent
+        // - how setAttribute should handle the ranges
+        // - whether attributes should be applied to this character
+        // - how to manage this when removing the block and whenever reparenting
+        const leadingLineBreak = this.shouldStartNewParagraph(childNode)
+          ? "\n"
+          : "";
+
         // console.log(
         //   `[Block] Appending inline "${childNode.data}"`,
         //   attributes ?? "<no attributes>",
         // );
         const attributedString = createAttributedString(
-          childNode.data,
+          `${leadingLineBreak}${childNode.data}`,
           attributes,
         );
 
@@ -213,10 +259,45 @@ export class Block extends FlowElement {
         continue;
       }
 
-      this.appendChild(childNode);
-    }
+      if (
+        !isBlock(childNode) &&
+        !isInline(childNode) &&
+        !isInlineBlock(childNode)
+      ) {
+        throw new Error(
+          "Block can only render descendant nodes of type Block, Inline or InlineBlock.",
+        );
+      }
 
-    return appended;
+      // Recurse into the Block or Inline.
+      this.renderAppendedChild(childNode);
+    }
+  }
+
+  /**
+   * Given a horrible case like this, when adding the FlowText 'a', determine
+   * whether it should start a new paragraph in the NSAttributedString (it
+   * should).
+   *
+   * ```html
+   * <block>
+   *   <block></block>
+   *   <block>x</block>
+   *   <block></block>
+   *   <block>
+   *     <block><inline></inline><inline>a</inline>b</block>
+   *   </block>
+   * </block>
+   * ```
+   */
+  private shouldStartNewParagraph(textNode: FlowText) {
+    let precedingNode = tree.preceding(textNode);
+    while (precedingNode && !isText(precedingNode)) {
+      precedingNode = tree.preceding(precedingNode);
+    }
+    const precedingPopulatedBlock =
+      precedingNode && isText(precedingNode) ? precedingNode.block : null;
+    return precedingPopulatedBlock && precedingPopulatedBlock !== this;
   }
 
   /**
