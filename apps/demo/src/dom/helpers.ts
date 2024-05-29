@@ -22,6 +22,26 @@ export function closest<T extends FlowNode>(
   return null;
 }
 
+/**
+ * Walk up the whole tree, finding the ancestor closest to the root that
+ * satisfies the condition. Search includes the node passed in.
+ */
+export function furthest<T extends FlowNode>(
+  self: FlowNode,
+  test:
+    | ((ancestor: unknown) => ancestor is T)
+    | ((ancestor: FlowNode) => boolean),
+) {
+  let best: T | null = null;
+  for (const ancestor of tree.ancestorsIterator(self)) {
+    if (test(ancestor)) {
+      best = ancestor as T;
+    }
+  }
+
+  return best;
+}
+
 export function* climbAncestors(node: FlowNode) {
   let parentNode: FlowNode | null = node.parentNode;
   while (parentNode) {

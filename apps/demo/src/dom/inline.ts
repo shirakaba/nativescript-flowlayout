@@ -27,9 +27,9 @@ export class Inline extends FlowElement {
     const appended = super.appendChild(node);
 
     if (isInline(node)) {
-      this.block?.onDescendantDidInsertInline(node);
+      this.furthestBlock?.onDescendantDidInsertInline(node);
     } else {
-      this.block?.onDescendantDidInsertText(node);
+      this.furthestBlock?.onDescendantDidInsertText(node);
     }
 
     return appended;
@@ -39,7 +39,7 @@ export class Inline extends FlowElement {
   setAttribute(key: string, value: unknown) {
     super.setAttribute(key, value);
 
-    this.block?.onDescendantDidUpdateAttributes(this);
+    this.furthestBlock?.onDescendantDidUpdateAttributes(this);
   }
 
   deleteAttribute(key: string) {
@@ -49,6 +49,6 @@ export class Inline extends FlowElement {
     // text range that they manage.
     super.deleteAttribute(key);
 
-    this.block?.onDescendantDidUpdateAttributes(this);
+    this.furthestBlock?.onDescendantDidUpdateAttributes(this);
   }
 }

@@ -190,7 +190,7 @@ export class Block extends FlowElement {
     // Next, make sure the flow type is consistent with the existing children.
     if (
       (isBlock(node) && this.flowType === "inline") ||
-      this.flowType === "block"
+      ((isInline(node) || isInlineBlock(node)) && this.flowType === "block")
     ) {
       throw new Error(
         "All children of a Block flow must be of the same type (all Blocks, or all Inline/InlineBlocks).",
@@ -215,6 +215,7 @@ export class Block extends FlowElement {
    * Update the textStorage based on the appended child (and its descendants).
    */
   private renderAppendedChild(node: Block | Inline | InlineBlock) {
+    console.log(`block.renderAppendedChild(<${node.nodeName}>)`);
     if (isInlineBlock(node)) {
       // Ignore descendants of InlineBlock for now; treat as a leaf node.
 
@@ -245,6 +246,8 @@ export class Block extends FlowElement {
         const leadingLineBreak = this.shouldStartNewParagraph(childNode)
           ? "\n"
           : "";
+
+        console.log(`leadingLineBreak: ${!!leadingLineBreak}`);
 
         // console.log(
         //   `[Block] Appending inline "${childNode.data}"`,
@@ -292,11 +295,18 @@ export class Block extends FlowElement {
    */
   private shouldStartNewParagraph(textNode: FlowText) {
     let precedingNode = tree.preceding(textNode);
-    while (precedingNode && !isText(precedingNode)) {
+    while (precedingNode) {
+      console.log(`Visiting "${precedingNode.debugId}"`);
+      if (isText(precedingNode)) {
+        console.log(`Identified "${precedingNode.debugId}"`);
+        break;
+      }
       precedingNode = tree.preceding(precedingNode);
     }
     const precedingPopulatedBlock =
-      precedingNode && isText(precedingNode) ? precedingNode.block : null;
+      precedingNode && isText(precedingNode)
+        ? precedingNode.closestBlock
+        : null;
     return precedingPopulatedBlock && precedingPopulatedBlock !== this;
   }
 
@@ -346,9 +356,18 @@ export class Block extends FlowElement {
   }
 
   onDescendantDidInsertText(insertedText: FlowText) {
+    console.log(`block.onDescendantDidInsertText(<${insertedText.nodeName}>)`);
+
     const startOffset = getStartOffsetOfDescendant(insertedText, this);
+
+    const leadingLineBreak = this.shouldStartNewParagraph(insertedText)
+      ? "\n"
+      : "";
+
+    console.log(`leadingLineBreak: ${!!leadingLineBreak}`);
+
     const attributedString = createAttributedString(
-      insertedText.data,
+      `${leadingLineBreak}${insertedText.data}`,
       resolveAttributes(insertedText),
     );
 

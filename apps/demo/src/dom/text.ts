@@ -1,5 +1,5 @@
 import { nodeNames, nodeTypes } from "./constants";
-import { closest, isBlock, isText } from "./helpers";
+import { closest, furthest, isBlock, isText } from "./helpers";
 import { FlowNode } from "./node";
 import { tree } from "./tree";
 
@@ -27,8 +27,7 @@ export class FlowText extends FlowNode {
     const prevData = this._data;
     this._data = value;
 
-    const closestBlock = closest(this, isBlock);
-    closestBlock?.onDescendantDidUpdateData(this, prevData, this._data);
+    this.furthestBlock?.onDescendantDidUpdateData(this, prevData, this._data);
   }
 
   get length(): number {
@@ -70,7 +69,12 @@ export class FlowText extends FlowNode {
   nodeType!: number;
 
   /** The closest Block ancestor, or null if there is none. */
-  get block() {
+  get closestBlock() {
     return closest(this, isBlock);
+  }
+
+  /** The furthest Block ancestor, or null if there is none. */
+  get furthestBlock() {
+    return furthest(this, isBlock);
   }
 }

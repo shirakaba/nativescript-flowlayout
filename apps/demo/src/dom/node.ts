@@ -22,6 +22,14 @@ export abstract class FlowNode {
   abstract nodeName: string;
   abstract nodeType: number;
 
+  _debugId?: string;
+  get debugId() {
+    return this._debugId ?? `<${this.nodeName}>`;
+  }
+  set debugId(value: string) {
+    this._debugId = value;
+  }
+
   appendChild<T extends FlowNode>(node: T): T {
     // Unlike the same-named DOM method, symbol-tree will throw rather than
     // reparent a child with an existing parent.

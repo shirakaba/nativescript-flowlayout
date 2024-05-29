@@ -55,6 +55,52 @@ test("can nest Inlines", ({ block }) => {
   assert.is(block.debugDescription(), "abcdef");
 });
 
+test.only("can nest Blocks", ({ block }) => {
+  console.log("beginning test");
+  block.debugId = "x";
+
+  // Adding an empty Block should not change the root Block's text content.
+  const nestedBlock1 = new Block();
+  nestedBlock1.debugId = "a";
+  block.appendChild(nestedBlock1);
+  assert.is(block.debugDescription(), "");
+
+  // Adding an empty Inline to the nested Block should not change the root
+  // Block's text content.
+  const inline1 = new Inline();
+  inline1.debugId = "aa";
+  nestedBlock1.appendChild(inline1);
+  assert.is(block.debugDescription(), "");
+
+  // Adding a FlowText into the Inline should update the root Block.
+  const flowText1 = new FlowText("abc");
+  flowText1.debugId = "aaa";
+  inline1.appendChild(flowText1);
+  assert.is(block.debugDescription(), "abc");
+
+  // It should be possible to add a second empty Block.
+  const nestedBlock2 = new Block();
+  nestedBlock2.debugId = "b";
+  block.appendChild(nestedBlock2);
+  assert.is(block.debugDescription(), "abc");
+
+  // Adding an empty Inline to the second nested Block should not change the
+  // root Block's text content.
+  const inline2 = new Inline();
+  inline2.debugId = "bb";
+  nestedBlock2.appendChild(inline2);
+  assert.is(block.debugDescription(), "abc");
+
+  // Adding a FlowText into the Inline of the second nested Block should update
+  // the root Block.
+  const flowText2 = new FlowText("def");
+  flowText2.debugId = "bbb";
+  inline2.appendChild(flowText2);
+  assert.is(block.debugDescription(), "abc\ndef");
+
+  console.log("ended test");
+});
+
 // Styled tests
 
 test("can style whole Block", ({ block }) => {

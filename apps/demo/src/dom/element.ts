@@ -1,5 +1,5 @@
 import { nodeTypes } from "./constants";
-import { closest, isBlock } from "./helpers";
+import { closest, furthest, isBlock } from "./helpers";
 import { FlowNode } from "./node";
 
 /**
@@ -65,7 +65,12 @@ export abstract class FlowElement extends FlowNode {
   }
 
   /** The closest Block ancestor, or null if there is none. */
-  get block() {
+  get closestBlock() {
     return closest(this, isBlock);
+  }
+
+  /** The furthest Block ancestor, or null if there is none. */
+  get furthestBlock() {
+    return furthest(this, isBlock);
   }
 }
