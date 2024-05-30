@@ -57,6 +57,9 @@ export class FlowText extends FlowNode {
   get textContent() {
     return this.data;
   }
+  get _textContentWithParagraphMarkers(): string | null {
+    return this.data;
+  }
 
   get data() {
     return this._data;

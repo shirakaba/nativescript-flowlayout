@@ -56,7 +56,6 @@ test("can nest Inlines", ({ block }) => {
 });
 
 test.only("can nest Blocks", ({ block }) => {
-  console.log("beginning test");
   block.debugId = "x";
 
   // Adding an empty Block should not change the root Block's text content.
@@ -104,8 +103,6 @@ test.only("can nest Blocks", ({ block }) => {
   flowText3.debugId = "bbb2";
   inline2.appendChild(flowText3);
   assert.is(block.debugDescription(), "abc\ndefghi");
-
-  console.log("ended test");
 });
 
 // Styled tests

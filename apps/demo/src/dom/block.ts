@@ -4,6 +4,7 @@ import { isBlock, isElement, isInline, isInlineBlock, isText } from "./helpers";
 import type { Inline } from "./inline";
 import type { InlineBlock } from "./inline-block";
 import type { FlowNode } from "./node";
+import { ParagraphMarker } from "./paragraph-marker";
 import type { FlowText } from "./text";
 import { tree } from "./tree";
 
@@ -247,12 +248,16 @@ export class Block extends FlowElement {
           ? "\n"
           : "";
 
+        if (leadingLineBreak) {
+          tree.prependChild(node, new ParagraphMarker());
+        }
+
         console.log(`leadingLineBreak: ${!!leadingLineBreak}`);
 
-        // console.log(
-        //   `[Block] Appending inline "${childNode.data}"`,
-        //   attributes ?? "<no attributes>",
-        // );
+        console.log(
+          `[Block] Appending inline "${leadingLineBreak}${childNode.data}"`,
+          attributes ?? "<no attributes>",
+        );
         const attributedString = createAttributedString(
           `${leadingLineBreak}${childNode.data}`,
           attributes,
@@ -294,6 +299,9 @@ export class Block extends FlowElement {
    * ```
    */
   private shouldStartNewParagraph(textNode: FlowText) {
+    console.log(
+      `[shouldStartNewParagraph] "${this.debugId}" assessing "${textNode.debugId}"`,
+    );
     let precedingNode = tree.preceding(textNode);
     while (precedingNode) {
       console.log(`Visiting "${precedingNode.debugId}"`);
@@ -366,6 +374,10 @@ export class Block extends FlowElement {
     const leadingLineBreak = this.shouldStartNewParagraph(insertedText)
       ? "\n"
       : "";
+
+    if (leadingLineBreak && insertedText.parentNode) {
+      tree.prependChild(insertedText.parentNode, new ParagraphMarker());
+    }
 
     console.log(`leadingLineBreak: ${!!leadingLineBreak}`);
 
@@ -566,7 +578,7 @@ function getStartOffsetOfDescendant(
     }
 
     for (const prevSibling of tree.previousSiblingsIterator(ancestor)) {
-      startOffset += prevSibling.textContent?.length ?? 0;
+      startOffset += prevSibling._textContentWithParagraphMarkers?.length ?? 0;
     }
   }
 

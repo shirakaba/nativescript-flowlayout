@@ -4,6 +4,7 @@ import type { FlowElement } from "./element";
 import type { Inline } from "./inline";
 import type { InlineBlock } from "./inline-block";
 import type { FlowNode } from "./node";
+import type { ParagraphMarker } from "./paragraph-marker";
 import type { FlowText } from "./text";
 import { tree } from "./tree";
 
@@ -64,4 +65,7 @@ export function isBlock(value: FlowNode): value is Block {
 }
 export function isInlineBlock(value: FlowNode): value is InlineBlock {
   return value.nodeName === nodeNames.InlineBlock;
+}
+export function isParagraphMarker(value: FlowNode): value is ParagraphMarker {
+  return value.nodeName === nodeNames.ParagraphMarker;
 }

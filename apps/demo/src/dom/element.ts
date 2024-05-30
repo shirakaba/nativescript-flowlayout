@@ -1,5 +1,5 @@
 import { nodeTypes } from "./constants";
-import { closest, furthest, isBlock } from "./helpers";
+import { closest, furthest, isBlock, isParagraphMarker } from "./helpers";
 import { FlowNode } from "./node";
 
 /**
@@ -15,9 +15,18 @@ export abstract class FlowElement extends FlowNode {
   nodeType!: number;
 
   get textContent() {
+    let textContent = "";
+    for (const child of this.childNodes) {
+      if (!isParagraphMarker(child)) {
+        textContent += child.textContent;
+      }
+    }
+    return textContent;
+  }
+  get _textContentWithParagraphMarkers() {
     let data = "";
     for (const child of this.childNodes) {
-      data += child.textContent;
+      data += child._textContentWithParagraphMarkers;
     }
     return data;
   }

@@ -18,6 +18,13 @@ export abstract class FlowNode {
     return tree.parent(this);
   }
   abstract get textContent(): string | null;
+  /**
+   * @internal
+   * Reflects the state of the native text storage. That is, unlike textContent,
+   * it includes any line break characters we use to establish new paragraphs
+   * (block boxes).
+   */
+  abstract get _textContentWithParagraphMarkers(): string | null;
   abstract get nodeValue(): string | null;
   abstract nodeName: string;
   abstract nodeType: number;
