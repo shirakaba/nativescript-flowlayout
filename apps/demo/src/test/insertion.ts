@@ -91,12 +91,19 @@ test.only("can nest Blocks", ({ block }) => {
   nestedBlock2.appendChild(inline2);
   assert.is(block.debugDescription(), "abc");
 
-  // Adding a FlowText into the Inline of the second nested Block should update
-  // the root Block.
+  // Adding a FlowText into the Inline of the second nested Block should
+  // introduce a line break in the root Block.
   const flowText2 = new FlowText("def");
-  flowText2.debugId = "bbb";
+  flowText2.debugId = "bbb1";
   inline2.appendChild(flowText2);
   assert.is(block.debugDescription(), "abc\ndef");
+
+  // Adding another FlowText into the Inline of the second nested Block should
+  // not introduce a line break in the root Block.
+  const flowText3 = new FlowText("ghi");
+  flowText3.debugId = "bbb2";
+  inline2.appendChild(flowText3);
+  assert.is(block.debugDescription(), "abc\ndefghi");
 
   console.log("ended test");
 });

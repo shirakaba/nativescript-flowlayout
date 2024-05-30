@@ -307,7 +307,10 @@ export class Block extends FlowElement {
       precedingNode && isText(precedingNode)
         ? precedingNode.closestBlock
         : null;
-    return precedingPopulatedBlock && precedingPopulatedBlock !== this;
+    return (
+      precedingPopulatedBlock &&
+      precedingPopulatedBlock !== textNode.closestBlock
+    );
   }
 
   /**
