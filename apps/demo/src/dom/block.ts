@@ -1,6 +1,14 @@
 import { nodeNames } from "./constants";
 import { FlowElement } from "./element";
-import { isBlock, isElement, isInline, isInlineBlock, isText } from "./helpers";
+import {
+  closest,
+  isBlock,
+  isElement,
+  isInline,
+  isInlineBlock,
+  isText,
+  precedentsIterator,
+} from "./helpers";
 import type { Inline } from "./inline";
 import type { InlineBlock } from "./inline-block";
 import type { FlowNode } from "./node";
@@ -177,7 +185,10 @@ export class Block extends FlowElement {
    * children of a block flow must be inlines."
    * @see https://webkit.org/blog/115/webcore-rendering-ii-blocks-and-inlines/
    */
-  private flowType: "block" | "inline" | null = null;
+  private _flowType: "block" | "inline" | null = null;
+  get flowType() {
+    return this._flowType;
+  }
 
   appendChild<T extends FlowNode>(node: T): T {
     // First, make sure it's a legal child. We don't support comment nodes or
@@ -198,7 +209,7 @@ export class Block extends FlowElement {
       );
     }
 
-    this.flowType = isBlock(node) ? "block" : "inline";
+    this._flowType = isBlock(node) ? "block" : "inline";
 
     // If asked to append a Block, we should steal its native bits and assume
     // ownership.
@@ -302,23 +313,23 @@ export class Block extends FlowElement {
     console.log(
       `[shouldStartNewParagraph] "${this.debugId}" assessing "${textNode.debugId}"`,
     );
-    let precedingNode = tree.preceding(textNode);
-    while (precedingNode) {
-      console.log(`Visiting "${precedingNode.debugId}"`);
-      if (isText(precedingNode)) {
-        console.log(`Identified "${precedingNode.debugId}"`);
-        break;
+
+    const closestInlineFlow = (textNode: FlowText) =>
+      closest(
+        textNode,
+        (node: FlowNode) => isBlock(node) && node.flowType === "inline",
+      );
+
+    for (const precedent of precedentsIterator(textNode)) {
+      if (isText(precedent)) {
+        return closestInlineFlow(precedent) !== closestInlineFlow(textNode);
       }
-      precedingNode = tree.preceding(precedingNode);
     }
-    const precedingPopulatedBlock =
-      precedingNode && isText(precedingNode)
-        ? precedingNode.closestBlock
-        : null;
-    return (
-      precedingPopulatedBlock &&
-      precedingPopulatedBlock !== textNode.closestBlock
-    );
+
+    // lastInclusiveDescendant would almost do the trick, but would
+    // false-positive on empty inlines.
+
+    return false;
   }
 
   /**

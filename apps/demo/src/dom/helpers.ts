@@ -43,11 +43,11 @@ export function furthest<T extends FlowNode>(
   return best;
 }
 
-export function* climbAncestors(node: FlowNode) {
-  let parentNode: FlowNode | null = node.parentNode;
-  while (parentNode) {
-    yield parentNode;
-    parentNode = parentNode.parentNode;
+export function* precedentsIterator(node: FlowNode) {
+  let precedingNode: FlowNode | null = tree.preceding(node);
+  while (precedingNode) {
+    yield precedingNode;
+    precedingNode = tree.preceding(precedingNode);
   }
 }
 
