@@ -6,7 +6,7 @@ export const nodeTypes = {
 } as const;
 
 export const nodeNames = {
-  Block: "BLOCK",
+  FlowLayout: "COORDINATOR",
   Inline: "INLINE",
   InlineBlock: "INLINEBLOCK",
   Text: "#text",

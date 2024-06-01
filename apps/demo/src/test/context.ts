@@ -1,9 +1,11 @@
+import type { FlowLayout } from "../dom/flow-layout";
+
 export interface Context {
   stageSize: CGRect;
   root: UIView;
 
   reset(): void;
-  setUp(textContainer: NSTextContainer): void;
+  setUp(flowLayout: FlowLayout): void;
 }
 
 const usedBeforeInitMessage = "Context accessed before initialization.";
@@ -29,18 +31,17 @@ export const context: Context = {
     }
   },
 
-  setUp(textContainer: NSTextContainer) {
+  setUp(flowLayout: FlowLayout) {
     if (context.root.subviews.count) {
       throw new Error(
         "Root still has subviews. Must call reset() before setUp()",
       );
     }
 
-    textContainer.size = context.stageSize.size;
     context.root.addSubview(
       UITextView.alloc().initWithFrameTextContainer(
         context.stageSize,
-        textContainer,
+        flowLayout.textContainer,
       ),
     );
   },

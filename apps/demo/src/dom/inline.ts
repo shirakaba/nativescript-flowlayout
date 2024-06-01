@@ -27,9 +27,9 @@ export class Inline extends FlowElement {
     const appended = super.appendChild(node);
 
     if (isInline(node)) {
-      this.block?.onDescendantDidInsertInline(node);
+      this.flowLayout?.onDescendantDidInsertInline(node);
     } else {
-      this.block?.onDescendantDidInsertText(node);
+      this.flowLayout?.onDescendantDidInsertText(node);
     }
 
     return appended;
@@ -39,16 +39,16 @@ export class Inline extends FlowElement {
   setAttribute(key: string, value: unknown) {
     super.setAttribute(key, value);
 
-    this.block?.onDescendantDidUpdateAttributes(this);
+    this.flowLayout?.onDescendantDidUpdateAttributes(this);
   }
 
   deleteAttribute(key: string) {
     // Don't bail out even if this Inline lacked the attribute, because the way
-    // a Block deletes its own attributes is to call deleteAttribute on all its
-    // Inlines and then have them call back up to update the Block for the given
-    // text range that they manage.
+    // a FlowLayout deletes its own attributes is to call deleteAttribute on
+    // all its Inlines and then have them call back up to update the FlowLayout
+    // for the given text range that they manage.
     super.deleteAttribute(key);
 
-    this.block?.onDescendantDidUpdateAttributes(this);
+    this.flowLayout?.onDescendantDidUpdateAttributes(this);
   }
 }

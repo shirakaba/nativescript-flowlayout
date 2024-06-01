@@ -1,6 +1,6 @@
-import type { Block } from "./block";
 import { nodeNames, nodeTypes } from "./constants";
 import type { FlowElement } from "./element";
+import type { FlowLayout } from "./flow-layout";
 import type { Inline } from "./inline";
 import type { InlineBlock } from "./inline-block";
 import type { FlowNode } from "./node";
@@ -30,6 +30,14 @@ export function* climbAncestors(node: FlowNode) {
   }
 }
 
+export function* followingIterator(node: FlowNode) {
+  let following: FlowNode | null = tree.following(node);
+  while (following) {
+    yield following;
+    following = tree.following(following);
+  }
+}
+
 export function isElement(value: FlowNode): value is FlowElement {
   return value.nodeType === nodeTypes.ELEMENT_NODE;
 }
@@ -39,8 +47,8 @@ export function isText(value: FlowNode): value is FlowText {
 export function isInline(value: FlowNode): value is Inline {
   return value.nodeName === nodeNames.Inline;
 }
-export function isBlock(value: FlowNode): value is Block {
-  return value.nodeName === nodeNames.Block;
+export function isFlowLayout(value: FlowNode): value is FlowLayout {
+  return value.nodeName === nodeNames.FlowLayout;
 }
 export function isInlineBlock(value: FlowNode): value is InlineBlock {
   return value.nodeName === nodeNames.InlineBlock;

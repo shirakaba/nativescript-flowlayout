@@ -31,7 +31,43 @@ export class InlineBlock extends FlowElement {
   }
   set width(value: number) {
     this._width = value;
-    this.block?.onDescendantDidUpdateSize(this, value, "width");
+    this.flowLayout?.onDescendantDidUpdateSize(this, value, "width");
+  }
+
+  private _attachment?: NSTextAttachment;
+  get attachment(): NSTextAttachment {
+    if (!this._attachment) {
+      const attachment = NSTextAttachment.new();
+      attachment.bounds = CGRectMake(0, 0, this.width, this.height);
+      this._attachment = attachment;
+    }
+    return this._attachment;
+  }
+
+  private _view?: UIView;
+  get view(): UIView | undefined {
+    return this._view;
+  }
+  set view(value: UIView | undefined) {
+    const oldView = this._view;
+
+    // Tell the flowLayout that the view changed
+    if (this._view) {
+      // overlayView.translatesAutoresizingMaskIntoConstraints = NO;
+      // underlyingView.translatesAutoresizingMaskIntoConstraints = NO;
+      // // Add the overlay view to the same superview as the underlying view
+      // [underlyingView.superview addSubview:overlayView];
+      // // Set up the constraints
+      // [NSLayoutConstraint activateConstraints:@[
+      //     [overlayView.topAnchor constraintEqualToAnchor:underlyingView.topAnchor],
+      //     [overlayView.bottomAnchor constraintEqualToAnchor:underlyingView.bottomAnchor],
+      //     [overlayView.leadingAnchor constraintEqualToAnchor:underlyingView.leadingAnchor],
+      //     [overlayView.trailingAnchor constraintEqualToAnchor:underlyingView.trailingAnchor]
+      // ]];
+    }
+    this._view = value;
+
+    this.flowLayout?.onDescendantDidUpdateAttachment(this, oldView, this._view);
   }
 
   private _height!: number;
@@ -40,6 +76,6 @@ export class InlineBlock extends FlowElement {
   }
   set height(value: number) {
     this._height = value;
-    this.block?.onDescendantDidUpdateSize(this, value, "height");
+    this.flowLayout?.onDescendantDidUpdateSize(this, value, "height");
   }
 }

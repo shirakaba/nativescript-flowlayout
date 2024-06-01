@@ -1,6 +1,8 @@
+import { dataDeserialize } from "@nativescript/core/utils";
+
 import { nodeNames } from "./constants";
 import { FlowElement } from "./element";
-import { isBlock, isElement, isInline, isInlineBlock, isText } from "./helpers";
+import { isElement, isInline, isInlineBlock, isText } from "./helpers";
 import type { Inline } from "./inline";
 import type { InlineBlock } from "./inline-block";
 import type { FlowNode } from "./node";
@@ -9,16 +11,29 @@ import { tree } from "./tree";
 
 const recycledEmptyObject = Object.freeze({});
 
+const customAttributeNames = {
+  inlineBlock: "inline-block", // WeakRef<InlineBlock>
+} as const;
+
 /**
  * Allowed children: Inline, InlineBlock.
  *
  * A stylable container with block display mode, based on Element from the DOM
  * spec.
  * @see Element
+ *
+ * TODO:
+ * - Support nesting Blocks in FlowLayout. This thing coordinates native objects
+ *   yet only understands inlines. We still lack the concept of a Block, which
+ *   we could achieve by reconciling three patterns of block content:
+ *   - Final: <inline>content</inline> # Has no <br/>.
+ *   - Empty: <inline><inline></inline></inline> # Has no texts, so no <br/>.
+ *   - Populated: <inline>content<br/></inline>. # Has content and <br/>.
+ * - React to resizes and text changes.
  */
-export class Block extends FlowElement {
+export class FlowLayout extends FlowElement {
   static {
-    this.prototype.nodeName = nodeNames.Block;
+    this.prototype.nodeName = nodeNames.FlowLayout;
   }
 
   nodeName!: string;
@@ -51,6 +66,8 @@ export class Block extends FlowElement {
   // different paragraphs (which is how HTML works, just not how Word works).
   readonly textContainer = NSTextContainer.new();
 
+  readonly textView: UITextView;
+
   // Not sure whether NSParagraphStyle will be much help for implementing
   // inter-block margin/padding, because it only works in the block direction
   // and only when the parent is a Block (rather than a foreign layout manager
@@ -60,10 +77,22 @@ export class Block extends FlowElement {
   // We can surely implement padding using insets, however:
   // https://papereditor.app/internals#text-container-math
 
-  constructor() {
+  constructor(rect = CGRectMake(0, 0, 394, 760)) {
     super();
     this.textStorage.addLayoutManager(this.layoutManager);
     this.layoutManager.addTextContainer(this.textContainer);
+
+    this.textContainer.size = rect.size;
+    this.textView = UITextView.alloc().initWithFrameTextContainer(
+      rect,
+      this.textContainer,
+    );
+
+    // At any time, we can update the frame with, e.g.:
+    // this.textView.frame = CGRectMake(0, 0, 100, 760);
+    //
+    // Strangely, setting the frame updates the width of the text container as
+    // specified, but updates the height to max_int or something.
   }
 
   debugDescription(options?: {
@@ -183,11 +212,19 @@ export class Block extends FlowElement {
     if (isInlineBlock(node)) {
       // Ignore descendants of InlineBlock for now; treat as a leaf node.
 
-      const attachment = NSTextAttachment.new();
-      attachment.bounds = CGRectMake(0, 0, node.width, node.height);
-
-      this.textStorage.appendAttributedString(
-        NSAttributedString.attributedStringWithAttachment(attachment),
+      // Create an attributed string, and after insertion, set some attributes
+      // on it that link the attachment back to its corresponding InlineBlock.
+      // We may want to do that as a WeakRef later.
+      const attributedString =
+        NSAttributedString.attributedStringWithAttachment(node.attachment);
+      const length = attributedString.length;
+      const location = this.textStorage.length;
+      this.textStorage.appendAttributedString(attributedString);
+      this.textStorage.addAttributesRange(
+        {
+          [customAttributeNames.inlineBlock]: new WeakRef(node),
+        } as unknown as NSDictionary<string, unknown>,
+        { location, length },
       );
 
       // I'm sure NSTextAttachmentViewProvider is superior, but I couldn't find
@@ -201,7 +238,7 @@ export class Block extends FlowElement {
       if (isText(childNode)) {
         const attributes = resolveAttributes(node);
         // console.log(
-        //   `[Block] Appending inline "${childNode.data}"`,
+        //   `[FlowLayout] Appending inline "${childNode.data}"`,
         //   attributes ?? "<no attributes>",
         // );
         const attributedString = createAttributedString(
@@ -291,7 +328,7 @@ export class Block extends FlowElement {
     //
     // The search is inclusive, so begins with the descendant itself.
     for (const node of tree.treeIterator(descendant)) {
-      if (!isInline(node) && !isBlock(node)) {
+      if (!isInline(node)) {
         // Only act upon descendants that manage attributes.
         continue;
       }
@@ -374,17 +411,83 @@ export class Block extends FlowElement {
       },
     );
   }
+
+  onDescendantDidUpdateAttachment(
+    descendant: InlineBlock,
+    _oldView?: UIView,
+    _newView?: UIView,
+  ) {
+    this.textStorage.enumerateAttributesInRangeOptionsUsingBlock(
+      { location: 0, length: this.textStorage.length },
+      0 as NSAttributedStringEnumerationOptions,
+      (attributes, range) => {
+        const attachment = attributes.valueForKey(NSAttachmentAttributeName);
+        if (!attachment || !(attachment instanceof NSTextAttachment)) {
+          console.log("no attachment", dataDeserialize(attributes));
+          return;
+        }
+
+        const inlineBlock = (
+          attributes.valueForKey(
+            customAttributeNames.inlineBlock,
+          ) as WeakRef<InlineBlock>
+        ).deref();
+        if (inlineBlock !== descendant) {
+          return;
+        }
+
+        console.log(`[onDescendantDidUpdateAttachment] inlineBlock`, {
+          attachment,
+          inlineBlock,
+        });
+
+        const attachmentRect =
+          this.layoutManager.boundingRectForGlyphRangeInTextContainer(
+            range,
+            this.textContainer,
+          );
+
+        const {
+          origin: { x, y },
+          size: { width, height },
+        } = attachmentRect;
+
+        console.log(`[onDescendantDidUpdateAttachment] attachmentRect`, {
+          origin: { x, y },
+          size: { width, height },
+        });
+
+        const inlineBlockView = inlineBlock.view;
+        if (!inlineBlockView) {
+          return;
+        }
+
+        // Convert the attachment rect to the textView's coordinate system
+        const convertedRect = this.textView.convertRectFromView(
+          attachmentRect,
+          this.textView.textInputView,
+        );
+
+        inlineBlockView.frame = CGRectMake(
+          convertedRect.origin.x,
+          convertedRect.origin.y,
+          inlineBlockView.frame.size.width,
+          inlineBlockView.frame.size.height,
+        );
+      },
+    );
+  }
 }
 
 /**
  * Walks up the DOM ancestors (including self) to resolve the attributes to
  * apply.
  */
-function resolveAttributes(node: FlowText | Inline | Block) {
+function resolveAttributes(node: FlowText | Inline) {
   let attributes: Record<string, unknown> | undefined;
 
   for (const ancestor of tree.ancestorsIterator(node) as Generator<
-    FlowText | Inline | Block
+    FlowText | Inline
   >) {
     // console.log(
     //   `[resolveAttributes] climbAncestors(<${inline.nodeName.toLowerCase()}>${inline.textContent}</${inline.nodeName.toLowerCase()}>): <${ancestor.nodeName.toLowerCase()}>${ancestor.textContent}</${ancestor.nodeName.toLowerCase()}>`,
@@ -443,7 +546,7 @@ function createAttributedString(
  */
 function getStartOffsetOfDescendant(
   descendant: FlowNode,
-  traverseUntilAncestor?: Block,
+  traverseUntilAncestor?: FlowLayout,
 ) {
   let startOffset = 0;
 

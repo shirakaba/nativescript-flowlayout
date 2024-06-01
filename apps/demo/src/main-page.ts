@@ -6,7 +6,7 @@
 
 import type { EventData, Page } from "@nativescript/core";
 
-import { Block } from "./dom/block";
+import { FlowLayout } from "./dom/flow-layout";
 import { Inline } from "./dom/inline";
 import { InlineBlock } from "./dom/inline-block";
 import { FlowText } from "./dom/text";
@@ -29,9 +29,12 @@ export function navigatingTo(args: EventData) {
   const content = page.content;
   // console.log(content);
 
-  const block = new Block();
-  block.setAttribute(NSUnderlineStyleAttributeName, NSUnderlineStyle.Single);
-  block.setAttribute(NSFontAttributeName, UIFont.systemFontOfSize(36));
+  const flowLayout = new FlowLayout();
+  flowLayout.setAttribute(
+    NSUnderlineStyleAttributeName,
+    NSUnderlineStyle.Single,
+  );
+  flowLayout.setAttribute(NSFontAttributeName, UIFont.systemFontOfSize(36));
 
   const inlineBlock = new InlineBlock();
   // width: 0, height: 0 seems to behave as "auto", which may be a blessing and
@@ -41,7 +44,7 @@ export function navigatingTo(args: EventData) {
 
   for (let i = 0; i < 3; i++) {
     if (i === 1) {
-      block.appendChild(inlineBlock);
+      flowLayout.appendChild(inlineBlock);
     }
 
     const inline = new Inline();
@@ -50,21 +53,18 @@ export function navigatingTo(args: EventData) {
       NSForegroundColorAttributeName,
       i % 2 === 0 ? UIColor.systemMintColor : UIColor.blueColor,
     );
-    block.appendChild(inline);
+    flowLayout.appendChild(inline);
   }
 
   // inlineBlock.width = 50;
   // inlineBlock.height = 50;
 
   // Some extra tests once we've already pushed the initial Inlines into the
-  // Block:
+  // FlowLayout:
 
-  const [inline0, _inlineBlock1, inline2, inline3] = [...block.childNodes] as [
-    Inline,
-    InlineBlock,
-    Inline,
-    Inline,
-  ];
+  const [inline0, _inlineBlock1, inline2, inline3] = [
+    ...flowLayout.childNodes,
+  ] as [Inline, InlineBlock, Inline, Inline];
   // Prove that we can update attributes.
   inline3.setAttribute(NSForegroundColorAttributeName, UIColor.redColor);
 
@@ -87,21 +87,12 @@ export function navigatingTo(args: EventData) {
 
   // Once the native view from Core has been populated, insert our view into it.
   content.addEventListener("loaded", () => {
-    // console.log("loaded!");
-    const rect = CGRectMake(0, 0, 394, 760);
-    block.textContainer.size = rect.size;
-    const tv = UITextView.alloc().initWithFrameTextContainer(
-      rect,
-      block.textContainer,
-    );
-    // console.log(
-    //   "textContainer.size",
-    //   tv.textContainer.size.width,
-    //   tv.textContainer.size.height,
-    // );
-    content.nativeView.addSubview(tv);
+    content.nativeView.addSubview(flowLayout.textView);
 
-    runAllTestSuites({ root: content.nativeView, stageSize: rect });
+    runAllTestSuites({
+      root: content.nativeView,
+      stageSize: flowLayout.textView.bounds,
+    });
 
     // tv.frame can be updated at any time and causes reflow. Strangely, setting
     // the tv.frame updates the width of the text container as specified, but

@@ -1,5 +1,5 @@
 import { nodeNames, nodeTypes } from "./constants";
-import { closest, isBlock, isText } from "./helpers";
+import { closest, isFlowLayout, isText } from "./helpers";
 import { FlowNode } from "./node";
 import { tree } from "./tree";
 
@@ -27,8 +27,8 @@ export class FlowText extends FlowNode {
     const prevData = this._data;
     this._data = value;
 
-    const closestBlock = closest(this, isBlock);
-    closestBlock?.onDescendantDidUpdateData(this, prevData, this._data);
+    const closestFlowLayout = closest(this, isFlowLayout);
+    closestFlowLayout?.onDescendantDidUpdateData(this, prevData, this._data);
   }
 
   get length(): number {
