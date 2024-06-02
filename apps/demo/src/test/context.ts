@@ -38,12 +38,7 @@ export const context: Context = {
       );
     }
 
-    context.root.addSubview(
-      UITextView.alloc().initWithFrameTextContainer(
-        context.stageSize,
-        flowLayout.textContainer,
-      ),
-    );
+    context.root.addSubview(flowLayout.textView);
   },
 };
 

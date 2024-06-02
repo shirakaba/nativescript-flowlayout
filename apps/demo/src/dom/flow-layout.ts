@@ -1,5 +1,3 @@
-import { dataDeserialize } from "@nativescript/core/utils";
-
 import { nodeNames } from "./constants";
 import { FlowElement } from "./element";
 import { isElement, isInline, isInlineBlock, isText } from "./helpers";
@@ -423,7 +421,6 @@ export class FlowLayout extends FlowElement {
       (attributes, range) => {
         const attachment = attributes.valueForKey(NSAttachmentAttributeName);
         if (!attachment || !(attachment instanceof NSTextAttachment)) {
-          console.log("no attachment", dataDeserialize(attributes));
           return;
         }
 
@@ -436,44 +433,29 @@ export class FlowLayout extends FlowElement {
           return;
         }
 
-        console.log(`[onDescendantDidUpdateAttachment] inlineBlock`, {
-          attachment,
-          inlineBlock,
-        });
-
-        const attachmentRect =
-          this.layoutManager.boundingRectForGlyphRangeInTextContainer(
-            range,
-            this.textContainer,
-          );
-
-        const {
-          origin: { x, y },
-          size: { width, height },
-        } = attachmentRect;
-
-        console.log(`[onDescendantDidUpdateAttachment] attachmentRect`, {
-          origin: { x, y },
-          size: { width, height },
-        });
+        // console.log(`[onDescendantDidUpdateAttachment] inlineBlock`, {
+        //   attachment,
+        //   inlineBlock,
+        // });
 
         const inlineBlockView = inlineBlock.view;
         if (!inlineBlockView) {
           return;
         }
 
-        // Convert the attachment rect to the textView's coordinate system
-        const convertedRect = this.textView.convertRectFromView(
-          attachmentRect,
-          this.textView.textInputView,
-        );
+        const { x, y } =
+          this.layoutManager.boundingRectForGlyphRangeInTextContainer(
+            range,
+            this.textContainer,
+          ).origin;
+        const { width, height } = attachment.bounds.size;
+        const frame = CGRectMake(x, y + height, width, height);
 
-        inlineBlockView.frame = CGRectMake(
-          convertedRect.origin.x,
-          convertedRect.origin.y,
-          inlineBlockView.frame.size.width,
-          inlineBlockView.frame.size.height,
-        );
+        // When we come to support "auto", "min", and "max" sizes, we will have
+        // to look into intrinsicContentSize and sizeThatFits, and will have to
+        // decide whether we change the framge of the view, the attachment, or
+        // both. But for now, we only need to deal with literal sizes.
+        inlineBlockView.frame = frame;
       },
     );
   }

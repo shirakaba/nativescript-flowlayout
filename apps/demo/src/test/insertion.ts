@@ -160,3 +160,21 @@ test("can style nested Inlines", ({ flowLayout }) => {
   nested.deleteAttribute(NSForegroundColorAttributeName);
   assert.is(flowLayout.debugDescription({ styles: true }), "[bu:aaabbbBBB]");
 });
+
+test("InlineBlocks", ({ flowLayout }) => {
+  const inline1 = new Inline();
+  inline1.appendChild(new FlowText("abc"));
+  flowLayout.appendChild(inline1);
+
+  const inlineBlock = new InlineBlock();
+  flowLayout.appendChild(inlineBlock);
+
+  const inline2 = new Inline();
+  inline2.appendChild(new FlowText("def"));
+  flowLayout.appendChild(inline2);
+
+  const view = UIView.alloc().initWithFrame(CGRectMake(0, 0, 100, 100));
+  view.backgroundColor = UIColor.purpleColor;
+  inlineBlock.view = view;
+  flowLayout.textView.addSubview(inlineBlock.view);
+});

@@ -11,8 +11,12 @@ import { FlowElement } from "./element";
 export class InlineBlock extends FlowElement {
   static {
     this.prototype.nodeName = nodeNames.InlineBlock;
-    this.prototype._width = 0;
-    this.prototype._height = 0;
+    // For now, we set an explicit width and height because setting 0,0 causes
+    // the NSTextAttachment's default image to fill up to its intrinsic content
+    // size (causing downstream calculations to become invalid).
+    // TODO: reduce to 0,0 by defining our own 0,0 UIImage.
+    this.prototype._width = 10;
+    this.prototype._height = 10;
   }
 
   // For now, assumes InlineBlock is a leaf node.
