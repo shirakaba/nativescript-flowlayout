@@ -9,6 +9,6 @@ export default {
     markingMode: "none",
   },
   cli: {
-    packageManager: "pnpm",
+    packageManager: "npm",
   },
 } as NativeScriptConfig;
