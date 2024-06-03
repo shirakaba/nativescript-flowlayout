@@ -11,12 +11,8 @@ import { FlowElement } from "./element";
 export class InlineBlock extends FlowElement {
   static {
     this.prototype.nodeName = nodeNames.InlineBlock;
-    // For now, we set an explicit width and height because setting 0,0 causes
-    // the NSTextAttachment's default image to fill up to its intrinsic content
-    // size (causing downstream calculations to become invalid).
-    // TODO: reduce to 0,0 by defining our own 0,0 UIImage.
-    this.prototype._width = 10;
-    this.prototype._height = 10;
+    this.prototype._width = 0;
+    this.prototype._height = 0;
   }
 
   // For now, assumes InlineBlock is a leaf node.
@@ -35,13 +31,43 @@ export class InlineBlock extends FlowElement {
   }
   set width(value: number) {
     this._width = value;
-    this.flowLayout?.onDescendantDidUpdateSize(this, value, "width");
+    this.flowLayout?.onDescendantDidUpdateSize(this);
+  }
+
+  private _height!: number;
+  get height() {
+    return this._height;
+  }
+  set height(value: number) {
+    this._height = value;
+    this.flowLayout?.onDescendantDidUpdateSize(this);
+  }
+
+  setSize(width: number, height: number) {
+    this._width = width;
+    this._height = height;
+    this.flowLayout?.onDescendantDidUpdateSize(this);
+  }
+
+  private static _placeholderImage?: UIImage;
+  /**
+   * The default placeholder image is a generic file icon. It's inconvenient
+   * because it has an intrinsic content size, meaning that setting its width
+   * and height to 0x0 doesn't actually size the image to 0x0, which messes up
+   * all layout calculations.
+   */
+  private static get placeholderImage() {
+    if (!this._placeholderImage) {
+      this._placeholderImage = UIImage.new();
+    }
+    return this._placeholderImage;
   }
 
   private _attachment?: NSTextAttachment;
   get attachment(): NSTextAttachment {
     if (!this._attachment) {
       const attachment = NSTextAttachment.new();
+      attachment.image = InlineBlock.placeholderImage;
       attachment.bounds = CGRectMake(0, 0, this.width, this.height);
       this._attachment = attachment;
     }
@@ -53,33 +79,10 @@ export class InlineBlock extends FlowElement {
     return this._view;
   }
   set view(value: UIView | undefined) {
-    const oldView = this._view;
-
-    // Tell the flowLayout that the view changed
-    if (this._view) {
-      // overlayView.translatesAutoresizingMaskIntoConstraints = NO;
-      // underlyingView.translatesAutoresizingMaskIntoConstraints = NO;
-      // // Add the overlay view to the same superview as the underlying view
-      // [underlyingView.superview addSubview:overlayView];
-      // // Set up the constraints
-      // [NSLayoutConstraint activateConstraints:@[
-      //     [overlayView.topAnchor constraintEqualToAnchor:underlyingView.topAnchor],
-      //     [overlayView.bottomAnchor constraintEqualToAnchor:underlyingView.bottomAnchor],
-      //     [overlayView.leadingAnchor constraintEqualToAnchor:underlyingView.leadingAnchor],
-      //     [overlayView.trailingAnchor constraintEqualToAnchor:underlyingView.trailingAnchor]
-      // ]];
-    }
+    // No need to change width and height to 0 when view is set to `undefined`,
+    // as `display: inline-block` respects width and height regardless of
+    // contents, unlike `display: inline` which ignores them altogether.
     this._view = value;
-
-    this.flowLayout?.onDescendantDidUpdateAttachment(this, oldView, this._view);
-  }
-
-  private _height!: number;
-  get height() {
-    return this._height;
-  }
-  set height(value: number) {
-    this._height = value;
-    this.flowLayout?.onDescendantDidUpdateSize(this, value, "height");
+    this.flowLayout?.onDescendantDidUpdateAttachment(this);
   }
 }

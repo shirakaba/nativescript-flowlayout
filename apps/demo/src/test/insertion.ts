@@ -168,6 +168,7 @@ test("InlineBlocks", ({ flowLayout }) => {
 
   const inlineBlock = new InlineBlock();
   flowLayout.appendChild(inlineBlock);
+  inlineBlock.setSize(10, 10);
 
   const inline2 = new Inline();
   inline2.appendChild(new FlowText("def"));

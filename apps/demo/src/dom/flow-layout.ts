@@ -355,11 +355,7 @@ export class FlowLayout extends FlowElement {
    * that this Block instance can update the size of the corresponding
    * NSTextAttachment.
    */
-  onDescendantDidUpdateSize(
-    descendant: InlineBlock,
-    value: number,
-    dimension: "width" | "height",
-  ) {
+  onDescendantDidUpdateSize(descendant: InlineBlock) {
     if (!isInlineBlock(descendant)) {
       // Only act upon descendants that manage size. We'll have to revisit this
       // once we support nesting blocks into blocks.
@@ -400,21 +396,18 @@ export class FlowLayout extends FlowElement {
           return;
         }
 
-        const size = attribute.bounds.size;
-        const width = dimension === "width" ? value : size.width;
-        const height = dimension === "height" ? value : size.height;
-
         // Have to set bounds rather than bounds.size.
-        attribute.bounds = CGRectMake(0, 0, width, height);
+        attribute.bounds = CGRectMake(
+          0,
+          0,
+          descendant.width,
+          descendant.height,
+        );
       },
     );
   }
 
-  onDescendantDidUpdateAttachment(
-    descendant: InlineBlock,
-    _oldView?: UIView,
-    _newView?: UIView,
-  ) {
+  onDescendantDidUpdateAttachment(descendant: InlineBlock) {
     this.textStorage.enumerateAttributesInRangeOptionsUsingBlock(
       { location: 0, length: this.textStorage.length },
       0 as NSAttributedStringEnumerationOptions,
