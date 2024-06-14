@@ -93,6 +93,36 @@ export class FlowLayout extends FlowElement {
     // specified, but updates the height to max_int or something.
   }
 
+  get width() {
+    return this.textView.frame.size.width;
+  }
+  set width(width: number) {
+    const {
+      origin: { x, y },
+      size: { height },
+    } = this.textView.frame;
+    this.textView.frame = CGRectMake(x, y, width, height);
+
+    // Call this to update the positions of all views tracking attachments.
+    // TODO: perhaps better to listen to native resizes? Not sure yet.
+    this.onDescendantDidUpdateAttachment();
+  }
+
+  get height() {
+    return this.textView.frame.size.height;
+  }
+  set height(height: number) {
+    const {
+      origin: { x, y },
+      size: { width },
+    } = this.textView.frame;
+    this.textView.frame = CGRectMake(x, y, width, height);
+
+    // Call this to update the positions of all views tracking attachments.
+    // TODO: perhaps better to listen to native resizes? Not sure yet.
+    this.onDescendantDidUpdateAttachment();
+  }
+
   debugDescription(options?: {
     styles?: true;
     shortestEffectiveRanges?: true;
@@ -212,18 +242,26 @@ export class FlowLayout extends FlowElement {
 
       // Create an attributed string, and after insertion, set some attributes
       // on it that link the attachment back to its corresponding InlineBlock.
-      // We may want to do that as a WeakRef later.
+      //
+      // In future, if needed, we could avoid the convenience method and
+      // manually assemble an attributed string with an attachment:
+      // https://stackoverflow.com/a/75513159/5951226
       const attributedString =
         NSAttributedString.attributedStringWithAttachment(node.attachment);
-      const length = attributedString.length;
       const location = this.textStorage.length;
       this.textStorage.appendAttributedString(attributedString);
-      this.textStorage.addAttributesRange(
-        {
-          [customAttributeNames.inlineBlock]: new WeakRef(node),
-        } as unknown as NSDictionary<string, unknown>,
-        { location, length },
+
+      const attribute = this.textStorage.attributeAtIndexEffectiveRange(
+        NSAttachmentAttributeName,
+        location,
+        null as unknown as interop.Pointer,
       );
+
+      node.attributes = {
+        ...node.attributes,
+        [NSAttachmentAttributeName]: attribute,
+        [customAttributeNames.inlineBlock]: new WeakRef(node),
+      };
 
       // I'm sure NSTextAttachmentViewProvider is superior, but I couldn't find
       // any docs for it.
@@ -320,13 +358,13 @@ export class FlowLayout extends FlowElement {
    * @param prevData The previous data of that TextNode.
    * @param newData The data that TextNode has just updated to.
    */
-  onDescendantDidUpdateAttributes(descendant: Inline) {
+  onDescendantDidUpdateAttributes(descendant: Inline | InlineBlock) {
     // Iterate over all descendants in tree order, updating attributes within
     // the affected range.
     //
     // The search is inclusive, so begins with the descendant itself.
     for (const node of tree.treeIterator(descendant)) {
-      if (!isInline(node)) {
+      if (!isInline(node) && !isInlineBlock(node)) {
         // Only act upon descendants that manage attributes.
         continue;
       }
@@ -342,11 +380,11 @@ export class FlowLayout extends FlowElement {
         },
       );
 
-      // console.log(`[onDescendantDidUpdateAttributes]`, {
-      //   startOffset,
-      //   length: descendant.textContent.length,
-      //   attributes,
-      // });
+      console.log(`[onDescendantDidUpdateAttributes]`, {
+        startOffset,
+        length: descendant.textContent.length,
+        attributes,
+      });
     }
   }
 
@@ -407,7 +445,11 @@ export class FlowLayout extends FlowElement {
     );
   }
 
-  onDescendantDidUpdateAttachment(descendant: InlineBlock) {
+  /**
+   * @param descendant An optional descendant. If passed, just the attachment
+   * for this desecendant will be updated, rather than all attachments.
+   */
+  onDescendantDidUpdateAttachment(descendant?: InlineBlock) {
     this.textStorage.enumerateAttributesInRangeOptionsUsingBlock(
       { location: 0, length: this.textStorage.length },
       0 as NSAttributedStringEnumerationOptions,
@@ -422,14 +464,20 @@ export class FlowLayout extends FlowElement {
             customAttributeNames.inlineBlock,
           ) as WeakRef<InlineBlock>
         ).deref();
-        if (inlineBlock !== descendant) {
+
+        // TODO: after finding the given descendant, stop the search.
+        if (descendant && inlineBlock !== descendant) {
           return;
         }
 
-        // console.log(`[onDescendantDidUpdateAttachment] inlineBlock`, {
-        //   attachment,
-        //   inlineBlock,
-        // });
+        if (!inlineBlock) {
+          return;
+        }
+
+        console.log(`[onDescendantDidUpdateAttachment] inlineBlock`, {
+          attachment,
+          inlineBlock,
+        });
 
         const inlineBlockView = inlineBlock.view;
         if (!inlineBlockView) {
@@ -442,6 +490,13 @@ export class FlowLayout extends FlowElement {
             this.textContainer,
           ).origin;
         const { width, height } = attachment.bounds.size;
+        // TODO: I think inlineBlock should be the source of truth, but need
+        // more time to work it out.
+        // const { width, height } = inlineBlock;
+        console.log("[onDescendantDidUpdateAttachment] inlineBlock size", {
+          width,
+          height,
+        });
         const frame = CGRectMake(x, y + height, width, height);
 
         // When we come to support "auto", "min", and "max" sizes, we will have

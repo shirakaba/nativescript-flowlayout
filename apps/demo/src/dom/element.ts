@@ -25,7 +25,13 @@ export abstract class FlowElement extends FlowNode {
     return null;
   }
 
-  attributes?: Record<string, unknown>;
+  private _attributes?: Record<string, unknown>;
+  get attributes() {
+    return this._attributes;
+  }
+  set attributes(value: Record<string, unknown> | undefined) {
+    this._attributes = value;
+  }
 
   /**
    * Records an NSAttributedString attribute to be applied. Subclasses should

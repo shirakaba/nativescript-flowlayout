@@ -49,6 +49,25 @@ export class InlineBlock extends FlowElement {
     this.flowLayout?.onDescendantDidUpdateSize(this);
   }
 
+  get attributes() {
+    return super.attributes;
+  }
+  set attributes(value: Record<string, unknown> | undefined) {
+    super.attributes = value;
+
+    this.flowLayout?.onDescendantDidUpdateAttributes(this);
+  }
+  setAttribute(key: string, value: unknown) {
+    super.setAttribute(key, value);
+
+    this.flowLayout?.onDescendantDidUpdateAttributes(this);
+  }
+  deleteAttribute(key: string) {
+    super.deleteAttribute(key);
+
+    this.flowLayout?.onDescendantDidUpdateAttributes(this);
+  }
+
   private static _placeholderImage?: UIImage;
   /**
    * The default placeholder image is a generic file icon. It's inconvenient

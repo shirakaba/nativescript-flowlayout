@@ -162,6 +162,8 @@ test("can style nested Inlines", ({ flowLayout }) => {
 });
 
 test("InlineBlocks", ({ flowLayout }) => {
+  flowLayout.setAttribute(NSFontAttributeName, UIFont.systemFontOfSize(36));
+
   const inline1 = new Inline();
   inline1.appendChild(new FlowText("abc"));
   flowLayout.appendChild(inline1);
@@ -178,4 +180,6 @@ test("InlineBlocks", ({ flowLayout }) => {
   view.backgroundColor = UIColor.purpleColor;
   inlineBlock.view = view;
   flowLayout.textView.addSubview(inlineBlock.view);
+
+  // flowLayout.width = 200;
 });
