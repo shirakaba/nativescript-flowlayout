@@ -442,6 +442,18 @@ export class FlowLayout extends FlowElement {
           descendant.height,
         );
 
+        // FIXME: Sadly this does not seem to be taking effect on the failing
+        // test. Maybe the glyph needs resizing, too?
+
+        // console.log("[onDescendantDidUpdateSize]", {
+        //   width: descendant.width,
+        //   height: descendant.height,
+        //   bounds: {
+        //     width: attribute.bounds.size.width,
+        //     height: attribute.bounds.size.height,
+        //   },
+        // });
+
         // Although we'll have updated the size of the glyph, we still need to
         // sync up the size of the attachment view that's tracking it.
         this.updateAttachmentSize(descendant, range);
@@ -540,6 +552,12 @@ export class FlowLayout extends FlowElement {
       Math.floor(width),
       Math.floor(height),
     );
+
+    // console.log("[updateAttachmentSize]", {
+    //   width,
+    //   height,
+    //   frame: { width: frame.size.width, height: frame.size.height },
+    // });
 
     // When we come to support "auto", "min", and "max" sizes, we will have
     // to look into intrinsicContentSize and sizeThatFits, and will have to

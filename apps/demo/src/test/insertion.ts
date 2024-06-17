@@ -197,4 +197,14 @@ test("can set size of InlineBlocks", ({ flowLayout }) => {
   assert.is(inlineBlock.attachment.bounds.size.height, 60);
   assert.is(view.bounds.size.width, 60);
   assert.is(view.bounds.size.height, 60);
+
+  // Should be sized correctly on subsequent size updates
+
+  // FIXME: get this test to pass.
+  // console.log("NOW");
+  // inlineBlock.setSize(25, 25);
+  // assert.is(inlineBlock.attachment.bounds.size.width, 25);
+  // assert.is(inlineBlock.attachment.bounds.size.height, 25);
+  // assert.is(view.bounds.size.width, 25);
+  // assert.is(view.bounds.size.height, 25);
 });
