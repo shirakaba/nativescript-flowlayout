@@ -262,6 +262,9 @@ export class FlowLayout extends FlowElement {
         [NSAttachmentAttributeName]: attribute,
         [customAttributeNames.inlineBlock]: new WeakRef(node),
       };
+      // Even if it doesn't have a view associated yet, ensure it occupies the
+      // correct amount of space.
+      this.onDescendantDidUpdateSize(node);
 
       // I'm sure NSTextAttachmentViewProvider is superior, but I couldn't find
       // any docs for it.
@@ -438,6 +441,10 @@ export class FlowLayout extends FlowElement {
           descendant.width,
           descendant.height,
         );
+
+        // Although we'll have updated the size of the glyph, we still need to
+        // sync up the size of the attachment view that's tracking it.
+        this.updateAttachmentSize(descendant, range);
       },
     );
   }
@@ -475,66 +482,70 @@ export class FlowLayout extends FlowElement {
           return;
         }
 
-        const inlineBlockView = inlineBlock.view;
-        if (!inlineBlockView) {
-          return;
-        }
-
-        // The origin is the top left. It's several pixels above an l (perhaps
-        // the top of the line altogether?).
-        // Bigger y values makes the attachment translate downwards.
-        const {
-          origin: { x, y },
-          size: { height: glyphHeight },
-        } = this.layoutManager.boundingRectForGlyphRangeInTextContainer(
-          range,
-          this.textContainer,
-        );
-        const { width, height } = inlineBlock;
-
-        // const font = this.textStorage.attributeAtIndexEffectiveRange(
-        //   NSFontAttributeName,
-        //   range.location,
-        //   // @ts-expect-error null pointer
-        //   null,
-        // ) as UIFont;
-
-        // As the attachment height increases beyond what the line can contain,
-        // the line grows out into the space below and the baseline lowers.
-        const frame = CGRectMake(
-          Math.floor(x),
-          // Sets the top of the attachment several pixels above the l.
-          // y
-
-          // Sets the top of the attachment at the bottom of the l.
-          // y + glyphHeight
-
-          // Seems to anchor the bottom of the attachment at the middle of the
-          // current line's z. The top of the attachment doesn't line up with
-          // anything in particular until the attachment becomes oversize, where
-          // we can see it grazes the baseline of the line above.
-          // Math.floor(y + glyphHeight - height + font.descender),
-
-          // Seems to anchor the bottom of the attachment at the baseline of the
-          // current line. The top of the attachment doesn't line up with
-          // anything in particular until the attachment becomes oversize, where
-          // we can see it grazes the baseline of the line above.
-          // Math.floor(y + glyphHeight - height + font.descender),
-          Math.floor(y + glyphHeight - height),
-          Math.floor(width),
-          Math.floor(height),
-        );
-
-        // When we come to support "auto", "min", and "max" sizes, we will have
-        // to look into intrinsicContentSize and sizeThatFits, and will have to
-        // decide whether we change the framge of the view, the attachment, or
-        // both. But for now, we only need to deal with literal sizes.
-        inlineBlockView.frame = frame;
+        this.updateAttachmentSize(inlineBlock, range);
 
         // Stop the search.
         (pointer as interop.Reference<boolean>).value = true;
       },
     );
+  }
+
+  private updateAttachmentSize(inlineBlock: InlineBlock, range: NSRange) {
+    const inlineBlockView = inlineBlock.view;
+    if (!inlineBlockView) {
+      return;
+    }
+
+    // The origin is the top left. It's several pixels above an l (perhaps
+    // the top of the line altogether?).
+    // Bigger y values makes the attachment translate downwards.
+    const {
+      origin: { x, y },
+      size: { height: glyphHeight },
+    } = this.layoutManager.boundingRectForGlyphRangeInTextContainer(
+      range,
+      this.textContainer,
+    );
+    const { width, height } = inlineBlock;
+
+    // const font = this.textStorage.attributeAtIndexEffectiveRange(
+    //   NSFontAttributeName,
+    //   range.location,
+    //   // @ts-expect-error null pointer
+    //   null,
+    // ) as UIFont;
+
+    // As the attachment height increases beyond what the line can contain,
+    // the line grows out into the space below and the baseline lowers.
+    const frame = CGRectMake(
+      Math.floor(x),
+      // Sets the top of the attachment several pixels above the l.
+      // y
+
+      // Sets the top of the attachment at the bottom of the l.
+      // y + glyphHeight
+
+      // Seems to anchor the bottom of the attachment at the middle of the
+      // current line's z. The top of the attachment doesn't line up with
+      // anything in particular until the attachment becomes oversize, where
+      // we can see it grazes the baseline of the line above.
+      // Math.floor(y + glyphHeight - height + font.descender),
+
+      // Seems to anchor the bottom of the attachment at the baseline of the
+      // current line. The top of the attachment doesn't line up with
+      // anything in particular until the attachment becomes oversize, where
+      // we can see it grazes the baseline of the line above.
+      // Math.floor(y + glyphHeight - height + font.descender),
+      Math.floor(y + glyphHeight - height),
+      Math.floor(width),
+      Math.floor(height),
+    );
+
+    // When we come to support "auto", "min", and "max" sizes, we will have
+    // to look into intrinsicContentSize and sizeThatFits, and will have to
+    // decide whether we change the framge of the view, the attachment, or
+    // both. But for now, we only need to deal with literal sizes.
+    inlineBlockView.frame = frame;
   }
 }
 

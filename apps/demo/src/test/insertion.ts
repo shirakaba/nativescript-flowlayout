@@ -183,11 +183,18 @@ test("can set size of InlineBlocks", ({ flowLayout }) => {
 
   const view = UIView.alloc().initWithFrame(CGRectMake(0, 0, 100, 100));
   view.backgroundColor = UIColor.purpleColor;
+
+  // Should be sized correctly before adding view
+  // TODO: assert on position once we have a robust way to do so
+  assert.is(inlineBlock.attachment.bounds.size.width, 60);
+  assert.is(inlineBlock.attachment.bounds.size.height, 60);
   inlineBlock.view = view;
   flowLayout.textView.addSubview(inlineBlock.view);
 
-  // Don't really have a good way to assert on origin yet
-  const { width, height } = view.bounds.size;
-  assert.is(width, 60);
-  assert.is(height, 60);
+  // Should be sized correctly after adding view too
+  // TODO: assert on position once we have a robust way to do so
+  assert.is(inlineBlock.attachment.bounds.size.width, 60);
+  assert.is(inlineBlock.attachment.bounds.size.height, 60);
+  assert.is(view.bounds.size.width, 60);
+  assert.is(view.bounds.size.height, 60);
 });
