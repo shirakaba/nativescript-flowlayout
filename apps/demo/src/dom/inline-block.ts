@@ -82,12 +82,16 @@ export class InlineBlock extends FlowElement {
     return this._placeholderImage;
   }
 
-  private _attachment?: NSTextAttachment;
-  get attachment(): NSTextAttachment {
+  private _attachment?: Attachment;
+  get attachment(): Attachment {
     if (!this._attachment) {
-      const attachment = NSTextAttachment.new();
-      attachment.image = InlineBlock.placeholderImage;
+      const attachment = Attachment.new() as Attachment;
       attachment.bounds = CGRectMake(0, 0, this.width, this.height);
+      if (this.view) {
+        attachment.view = this.view;
+      } else {
+        attachment.image = InlineBlock.placeholderImage;
+      }
       this._attachment = attachment;
     }
     return this._attachment;
@@ -102,38 +106,55 @@ export class InlineBlock extends FlowElement {
     // as `display: inline-block` respects width and height regardless of
     // contents, unlike `display: inline` which ignores them altogether.
     this._view = value;
+    if (value) {
+      this.attachment.view = value;
+    } else {
+      // @ts-expect-error null pointer
+      this.attachment.view = null;
+      this.attachment.image = InlineBlock.placeholderImage;
+    }
     this.flowLayout?.onDescendantDidUpdateAttachment(this);
   }
 }
 
-@NativeClass
-class AttachmentView extends UIView {
-  // intrinsicContentSize
-  // padding
-  // radius
-}
+// @NativeClass
+// class AttachmentView extends UIView {
+//   // intrinsicContentSize
+//   // padding
+//   // radius
+//   // drawRect(rect: CGRect): void {}
+// }
 
-@NativeClass
-class AttachmentViewProvider extends NSTextAttachmentViewProvider {
-  loadView(): void {
-    this.view = AttachmentView.new();
-  }
-}
+// @NativeClass
+// class AttachmentViewProvider extends NSTextAttachmentViewProvider {
+//   // Alternatively, set this.view in advance on an NSTextAttachmentViewProvider.
+//   // https://developer.apple.com/documentation/uikit/uiviewcontroller/1621454-loadview
+//   loadView(): void {
+//     this.view = AttachmentView.new();
+//   }
+// }
 
 @NativeClass
 class Attachment extends NSTextAttachment {
+  view?: UIView;
+
   viewProviderForParentViewLocationTextContainer(
     parentView: UIView,
     location: NSTextLocation,
     textContainer: NSTextContainer,
   ): NSTextAttachmentViewProvider {
     const viewProvider =
-      AttachmentViewProvider.alloc().initWithTextAttachmentParentViewTextLayoutManagerLocation(
+      NSTextAttachmentViewProvider.alloc().initWithTextAttachmentParentViewTextLayoutManagerLocation(
         this,
         parentView,
         textContainer?.textLayoutManager,
         location,
       );
+
+    if (this.view) {
+      viewProvider.view;
+    }
+
     viewProvider.tracksTextAttachmentViewBounds = true;
     return viewProvider;
   }

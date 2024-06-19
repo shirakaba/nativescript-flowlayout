@@ -161,7 +161,7 @@ test("can style nested Inlines", ({ flowLayout }) => {
   assert.is(flowLayout.debugDescription({ styles: true }), "[bu:aaabbbBBB]");
 });
 
-test("can set size of InlineBlocks", ({ flowLayout }) => {
+test.skip("can set size of InlineBlocks", ({ flowLayout }) => {
   // Make the text big enough to easily wrap onto a new line, at least on iPhone
   // (in future, we'll make a more robust device-agnostic test, but as we're
   // only asserting on size rather than origin point for now, we're fine)

@@ -36,23 +36,11 @@ export class FlowLayout extends FlowElement {
 
   nodeName!: string;
 
-  // One textStorage can hold multiple layoutManagers.
-  //
-  // Allows multiple visual representations of the same text that can be placed
-  // and sized independently. Any edit in one such representation will reflect
-  // in the others.
-  //
-  // NSTextStorage extends NSAttributedString, so you can call
-  // initWithStringAttributes. However, the attributes specified apply only to
-  // that initial string, and do not cascade to subsequently appended
-  // attributed strings.
-  private readonly textStorage = NSTextStorage.new();
-
   // One layoutManager can hold multiple textContainers.
   //
   // Allows one representation of the text to be spread across multiple views,
   // e.g. to allow paginated layout (with each page containing a separate view).
-  private readonly layoutManager = NSLayoutManager.new();
+  private readonly textLayoutManager = NSTextLayoutManager.new();
 
   // > An NSLayoutManager uses NSTextContainer to determine where to break lines,
   // lay out portions of text, and so on.
@@ -63,6 +51,7 @@ export class FlowLayout extends FlowElement {
   // cascade from the topmost block down to all descendants, despite being
   // different paragraphs (which is how HTML works, just not how Word works).
   readonly textContainer = NSTextContainer.new();
+  readonly textContentStorage = NSTextContentStorage.new();
 
   readonly textView: UITextView;
 
@@ -77,13 +66,13 @@ export class FlowLayout extends FlowElement {
 
   constructor(rect = CGRectMake(0, 0, 394, 760)) {
     super();
-    this.textStorage.addLayoutManager(this.layoutManager);
-    this.layoutManager.addTextContainer(this.textContainer);
 
-    this.textContainer.size = rect.size;
+    this.textLayoutManager.textContainer = this.textContainer;
+    this.textContentStorage.addTextLayoutManager(this.textLayoutManager);
+
     this.textView = UITextView.alloc().initWithFrameTextContainer(
       rect,
-      this.textContainer,
+      this.textLayoutManager.textContainer,
     );
 
     // At any time, we can update the frame with, e.g.:
@@ -128,7 +117,7 @@ export class FlowLayout extends FlowElement {
     shortestEffectiveRanges?: true;
   }) {
     if (!options?.styles) {
-      return this.textStorage.string;
+      return this.textContentStorage.attributedString.string;
     }
 
     const fragments = new Array<{
@@ -137,8 +126,8 @@ export class FlowLayout extends FlowElement {
     }>();
     // An explanation of how ranges work (they're relative):
     // https://papereditor.app/internals#attributes
-    this.textStorage.enumerateAttributesInRangeOptionsUsingBlock(
-      { location: 0, length: this.textStorage.length },
+    this.textContentStorage.attributedString.enumerateAttributesInRangeOptionsUsingBlock(
+      { location: 0, length: this.textContentStorage.attributedString.length },
       options?.shortestEffectiveRanges
         ? NSAttributedStringEnumerationOptions.LongestEffectiveRangeNotRequired
         : (0 as NSAttributedStringEnumerationOptions),
@@ -150,7 +139,9 @@ export class FlowLayout extends FlowElement {
         fragments.push({
           attributes:
             attributes instanceof NSDictionary ? attributes : undefined,
-          text: this.textStorage.attributedSubstringFromRange(range).string,
+          text: this.textContentStorage.attributedString.attributedSubstringFromRange(
+            range,
+          ).string,
         });
       },
     );
@@ -248,14 +239,17 @@ export class FlowLayout extends FlowElement {
       // https://stackoverflow.com/a/75513159/5951226
       const attributedString =
         NSAttributedString.attributedStringWithAttachment(node.attachment);
-      const location = this.textStorage.length;
-      this.textStorage.appendAttributedString(attributedString);
-
-      const attribute = this.textStorage.attributeAtIndexEffectiveRange(
-        NSAttachmentAttributeName,
-        location,
-        null as unknown as interop.Pointer,
+      const location = this.textContentStorage.attributedString.length;
+      this.textContentStorage.textStorage.appendAttributedString(
+        attributedString,
       );
+
+      const attribute =
+        this.textContentStorage.attributedString.attributeAtIndexEffectiveRange(
+          NSAttachmentAttributeName,
+          location,
+          null as unknown as interop.Pointer,
+        );
 
       node.attributes = {
         ...node.attributes,
@@ -285,7 +279,9 @@ export class FlowLayout extends FlowElement {
           attributes,
         );
 
-        this.textStorage.appendAttributedString(attributedString);
+        this.textContentStorage.textStorage.appendAttributedString(
+          attributedString,
+        );
         continue;
       }
 
@@ -311,7 +307,7 @@ export class FlowLayout extends FlowElement {
   ) {
     const startOffset = getStartOffsetOfDescendant(descendant, this);
 
-    this.textStorage.replaceCharactersInRangeWithString(
+    this.textContentStorage.textStorage.replaceCharactersInRangeWithString(
       { location: startOffset, length: prevData.length },
       newData,
     );
@@ -347,7 +343,7 @@ export class FlowLayout extends FlowElement {
       resolveAttributes(insertedText),
     );
 
-    this.textStorage.insertAttributedStringAtIndex(
+    this.textContentStorage.textStorage.insertAttributedStringAtIndex(
       attributedString,
       startOffset,
     );
@@ -375,7 +371,7 @@ export class FlowLayout extends FlowElement {
       const startOffset = getStartOffsetOfDescendant(node, this);
       const attributes = resolveAttributes(node) ?? recycledEmptyObject;
 
-      this.textStorage.setAttributesRange(
+      this.textContentStorage.textStorage.setAttributesRange(
         attributes as unknown as NSDictionary<string, unknown>,
         {
           location: startOffset,
@@ -403,7 +399,7 @@ export class FlowLayout extends FlowElement {
     const startOffset = getStartOffsetOfDescendant(descendant);
     console.log(`onDescendantDidUpdateSize startOffset: ${startOffset}`);
 
-    this.textStorage.enumerateAttributeInRangeOptionsUsingBlock(
+    this.textContentStorage.attributedString.enumerateAttributeInRangeOptionsUsingBlock(
       NSAttachmentAttributeName,
       // This function only runs if length is at least 1.
       { location: startOffset, length: 1 },
@@ -468,9 +464,12 @@ export class FlowLayout extends FlowElement {
   onDescendantDidUpdateAttachment(descendant?: InlineBlock) {
     const enumerationRange = descendant
       ? { location: getStartOffsetOfDescendant(descendant), length: 1 }
-      : { location: 0, length: this.textStorage.length };
+      : {
+          location: 0,
+          length: this.textContentStorage.attributedString.length,
+        };
 
-    this.textStorage.enumerateAttributesInRangeOptionsUsingBlock(
+    this.textContentStorage.attributedString.enumerateAttributesInRangeOptionsUsingBlock(
       enumerationRange,
       0 as NSAttributedStringEnumerationOptions,
       (attributes, range, pointer) => {
@@ -502,68 +501,69 @@ export class FlowLayout extends FlowElement {
     );
   }
 
-  private updateAttachmentSize(inlineBlock: InlineBlock, range: NSRange) {
-    const inlineBlockView = inlineBlock.view;
-    if (!inlineBlockView) {
-      return;
-    }
+  private updateAttachmentSize(_inlineBlock: InlineBlock, _range: NSRange) {
+    console.log("[updateAttachmentSize] no-op");
+    // const inlineBlockView = inlineBlock.view;
+    // if (!inlineBlockView) {
+    //   return;
+    // }
 
-    // The origin is the top left. It's several pixels above an l (perhaps
-    // the top of the line altogether?).
-    // Bigger y values makes the attachment translate downwards.
-    const {
-      origin: { x, y },
-      size: { height: glyphHeight },
-    } = this.layoutManager.boundingRectForGlyphRangeInTextContainer(
-      range,
-      this.textContainer,
-    );
-    const { width, height } = inlineBlock;
+    // // The origin is the top left. It's several pixels above an l (perhaps
+    // // the top of the line altogether?).
+    // // Bigger y values makes the attachment translate downwards.
+    // const {
+    //   origin: { x, y },
+    //   size: { height: glyphHeight },
+    // } = this.layoutManager.boundingRectForGlyphRangeInTextContainer(
+    //   range,
+    //   this.textContainer,
+    // );
+    // const { width, height } = inlineBlock;
 
-    // const font = this.textStorage.attributeAtIndexEffectiveRange(
-    //   NSFontAttributeName,
-    //   range.location,
-    //   // @ts-expect-error null pointer
-    //   null,
-    // ) as UIFont;
+    // // const font = this.textStorage.attributeAtIndexEffectiveRange(
+    // //   NSFontAttributeName,
+    // //   range.location,
+    // //   // @ts-expect-error null pointer
+    // //   null,
+    // // ) as UIFont;
 
-    // As the attachment height increases beyond what the line can contain,
-    // the line grows out into the space below and the baseline lowers.
-    const frame = CGRectMake(
-      Math.floor(x),
-      // Sets the top of the attachment several pixels above the l.
-      // y
+    // // As the attachment height increases beyond what the line can contain,
+    // // the line grows out into the space below and the baseline lowers.
+    // const frame = CGRectMake(
+    //   Math.floor(x),
+    //   // Sets the top of the attachment several pixels above the l.
+    //   // y
 
-      // Sets the top of the attachment at the bottom of the l.
-      // y + glyphHeight
+    //   // Sets the top of the attachment at the bottom of the l.
+    //   // y + glyphHeight
 
-      // Seems to anchor the bottom of the attachment at the middle of the
-      // current line's z. The top of the attachment doesn't line up with
-      // anything in particular until the attachment becomes oversize, where
-      // we can see it grazes the baseline of the line above.
-      // Math.floor(y + glyphHeight - height + font.descender),
+    //   // Seems to anchor the bottom of the attachment at the middle of the
+    //   // current line's z. The top of the attachment doesn't line up with
+    //   // anything in particular until the attachment becomes oversize, where
+    //   // we can see it grazes the baseline of the line above.
+    //   // Math.floor(y + glyphHeight - height + font.descender),
 
-      // Seems to anchor the bottom of the attachment at the baseline of the
-      // current line. The top of the attachment doesn't line up with
-      // anything in particular until the attachment becomes oversize, where
-      // we can see it grazes the baseline of the line above.
-      // Math.floor(y + glyphHeight - height + font.descender),
-      Math.floor(y + glyphHeight - height),
-      Math.floor(width),
-      Math.floor(height),
-    );
+    //   // Seems to anchor the bottom of the attachment at the baseline of the
+    //   // current line. The top of the attachment doesn't line up with
+    //   // anything in particular until the attachment becomes oversize, where
+    //   // we can see it grazes the baseline of the line above.
+    //   // Math.floor(y + glyphHeight - height + font.descender),
+    //   Math.floor(y + glyphHeight - height),
+    //   Math.floor(width),
+    //   Math.floor(height),
+    // );
 
-    // console.log("[updateAttachmentSize]", {
-    //   width,
-    //   height,
-    //   frame: { width: frame.size.width, height: frame.size.height },
-    // });
+    // // console.log("[updateAttachmentSize]", {
+    // //   width,
+    // //   height,
+    // //   frame: { width: frame.size.width, height: frame.size.height },
+    // // });
 
-    // When we come to support "auto", "min", and "max" sizes, we will have
-    // to look into intrinsicContentSize and sizeThatFits, and will have to
-    // decide whether we change the framge of the view, the attachment, or
-    // both. But for now, we only need to deal with literal sizes.
-    inlineBlockView.frame = frame;
+    // // When we come to support "auto", "min", and "max" sizes, we will have
+    // // to look into intrinsicContentSize and sizeThatFits, and will have to
+    // // decide whether we change the framge of the view, the attachment, or
+    // // both. But for now, we only need to deal with literal sizes.
+    // inlineBlockView.frame = frame;
   }
 }
 
