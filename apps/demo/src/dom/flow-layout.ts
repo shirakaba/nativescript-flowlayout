@@ -392,14 +392,11 @@ export class FlowLayout extends FlowElement {
    * Descendant InlineBlocks should call this method upon any size update, so
    * that this Block instance can update the size of the corresponding
    * NSTextAttachment.
+   *
+   * If we ever support nesting Blocks into Blocks, this will need to accept
+   * those as well.
    */
   onDescendantDidUpdateSize(descendant: InlineBlock) {
-    if (!isInlineBlock(descendant)) {
-      // Only act upon descendants that manage size. We'll have to revisit this
-      // once we support nesting blocks into blocks.
-      return;
-    }
-
     const startOffset = getStartOffsetOfDescendant(descendant);
     console.log(`onDescendantDidUpdateSize startOffset: ${startOffset}`);
 
@@ -446,16 +443,20 @@ export class FlowLayout extends FlowElement {
   }
 
   /**
-   * @param descendant An optional descendant. If passed, just the attachment
-   * for this desecendant will be updated, rather than all attachments.
+   * Updates the bounds for the attachment of the given descendant, or all
+   * descendants if no descendant is passed.
    */
   onDescendantDidUpdateAttachment(descendant?: InlineBlock) {
+    const enumerationRange = descendant
+      ? { location: getStartOffsetOfDescendant(descendant), length: 1 }
+      : { location: 0, length: this.textStorage.length };
+
     this.textStorage.enumerateAttributesInRangeOptionsUsingBlock(
-      { location: 0, length: this.textStorage.length },
+      enumerationRange,
       0 as NSAttributedStringEnumerationOptions,
-      (attributes, range) => {
+      (attributes, range, pointer) => {
         const attachment = attributes.valueForKey(NSAttachmentAttributeName);
-        if (!attachment || !(attachment instanceof NSTextAttachment)) {
+        if (!(attachment instanceof NSTextAttachment)) {
           return;
         }
 
@@ -464,46 +465,74 @@ export class FlowLayout extends FlowElement {
             customAttributeNames.inlineBlock,
           ) as WeakRef<InlineBlock>
         ).deref();
-
-        // TODO: after finding the given descendant, stop the search.
-        if (descendant && inlineBlock !== descendant) {
-          return;
-        }
-
         if (!inlineBlock) {
           return;
         }
 
-        console.log(`[onDescendantDidUpdateAttachment] inlineBlock`, {
-          attachment,
-          inlineBlock,
-        });
+        // Unexpected. Stop the search.
+        if (descendant && inlineBlock !== descendant) {
+          (pointer as interop.Reference<boolean>).value = true;
+          return;
+        }
 
         const inlineBlockView = inlineBlock.view;
         if (!inlineBlockView) {
           return;
         }
 
-        const { x, y } =
-          this.layoutManager.boundingRectForGlyphRangeInTextContainer(
-            range,
-            this.textContainer,
-          ).origin;
-        const { width, height } = attachment.bounds.size;
-        // TODO: I think inlineBlock should be the source of truth, but need
-        // more time to work it out.
-        // const { width, height } = inlineBlock;
-        console.log("[onDescendantDidUpdateAttachment] inlineBlock size", {
-          width,
-          height,
-        });
-        const frame = CGRectMake(x, y + height, width, height);
+        // The origin is the top left. It's several pixels above an l (perhaps
+        // the top of the line altogether?).
+        // Bigger y values makes the attachment translate downwards.
+        const {
+          origin: { x, y },
+          size: { height: glyphHeight },
+        } = this.layoutManager.boundingRectForGlyphRangeInTextContainer(
+          range,
+          this.textContainer,
+        );
+        const { width, height } = inlineBlock;
+
+        // const font = this.textStorage.attributeAtIndexEffectiveRange(
+        //   NSFontAttributeName,
+        //   range.location,
+        //   // @ts-expect-error null pointer
+        //   null,
+        // ) as UIFont;
+
+        // As the attachment height increases beyond what the line can contain,
+        // the line grows out into the space below and the baseline lowers.
+        const frame = CGRectMake(
+          Math.floor(x),
+          // Sets the top of the attachment several pixels above the l.
+          // y
+
+          // Sets the top of the attachment at the bottom of the l.
+          // y + glyphHeight
+
+          // Seems to anchor the bottom of the attachment at the middle of the
+          // current line's z. The top of the attachment doesn't line up with
+          // anything in particular until the attachment becomes oversize, where
+          // we can see it grazes the baseline of the line above.
+          // Math.floor(y + glyphHeight - height + font.descender),
+
+          // Seems to anchor the bottom of the attachment at the baseline of the
+          // current line. The top of the attachment doesn't line up with
+          // anything in particular until the attachment becomes oversize, where
+          // we can see it grazes the baseline of the line above.
+          // Math.floor(y + glyphHeight - height + font.descender),
+          Math.floor(y + glyphHeight - height),
+          Math.floor(width),
+          Math.floor(height),
+        );
 
         // When we come to support "auto", "min", and "max" sizes, we will have
         // to look into intrinsicContentSize and sizeThatFits, and will have to
         // decide whether we change the framge of the view, the attachment, or
         // both. But for now, we only need to deal with literal sizes.
         inlineBlockView.frame = frame;
+
+        // Stop the search.
+        (pointer as interop.Reference<boolean>).value = true;
       },
     );
   }

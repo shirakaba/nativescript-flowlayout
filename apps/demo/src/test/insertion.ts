@@ -161,19 +161,24 @@ test("can style nested Inlines", ({ flowLayout }) => {
   assert.is(flowLayout.debugDescription({ styles: true }), "[bu:aaabbbBBB]");
 });
 
-test("InlineBlocks", ({ flowLayout }) => {
+test("can set size of InlineBlocks", ({ flowLayout }) => {
+  // Make the text big enough to easily wrap onto a new line, at least on iPhone
+  // (in future, we'll make a more robust device-agnostic test, but as we're
+  // only asserting on size rather than origin point for now, we're fine)
   flowLayout.setAttribute(NSFontAttributeName, UIFont.systemFontOfSize(36));
 
   const inline1 = new Inline();
-  inline1.appendChild(new FlowText("abc"));
+  inline1.appendChild(new FlowText("abc def ghi jkl mno pqr stu vwx yz"));
   flowLayout.appendChild(inline1);
 
   const inlineBlock = new InlineBlock();
   flowLayout.appendChild(inlineBlock);
-  inlineBlock.setSize(10, 10);
+  inlineBlock.setSize(60, 60);
 
   const inline2 = new Inline();
-  inline2.appendChild(new FlowText("def"));
+  inline2.appendChild(
+    new FlowText("abc def ghi jkl mno pqr stu vwx yz".toUpperCase()),
+  );
   flowLayout.appendChild(inline2);
 
   const view = UIView.alloc().initWithFrame(CGRectMake(0, 0, 100, 100));
@@ -181,5 +186,8 @@ test("InlineBlocks", ({ flowLayout }) => {
   inlineBlock.view = view;
   flowLayout.textView.addSubview(inlineBlock.view);
 
-  // flowLayout.width = 200;
+  // Don't really have a good way to assert on origin yet
+  const { width, height } = view.bounds.size;
+  assert.is(width, 60);
+  assert.is(height, 60);
 });
