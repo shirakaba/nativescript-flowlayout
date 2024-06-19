@@ -161,7 +161,7 @@ test("can style nested Inlines", ({ flowLayout }) => {
   assert.is(flowLayout.debugDescription({ styles: true }), "[bu:aaabbbBBB]");
 });
 
-test.skip("can set size of InlineBlocks", ({ flowLayout }) => {
+test.only("can set size of InlineBlocks", ({ flowLayout }) => {
   // Make the text big enough to easily wrap onto a new line, at least on iPhone
   // (in future, we'll make a more robust device-agnostic test, but as we're
   // only asserting on size rather than origin point for now, we're fine)
@@ -170,8 +170,15 @@ test.skip("can set size of InlineBlocks", ({ flowLayout }) => {
   const inline1 = new Inline();
   inline1.appendChild(new FlowText("abc def ghi jkl mno pqr stu vwx yz"));
   flowLayout.appendChild(inline1);
+  const view = UIView.alloc().initWithFrame(CGRectMake(0, 0, 100, 100));
+  view.backgroundColor = UIColor.purpleColor;
 
   const inlineBlock = new InlineBlock();
+  inlineBlock.view = view;
+  // console.log(
+  //   `[test] inlineBlock.attachment.view`,
+  //   inlineBlock.attachment.view,
+  // );
   flowLayout.appendChild(inlineBlock);
   inlineBlock.setSize(60, 60);
 
@@ -181,15 +188,12 @@ test.skip("can set size of InlineBlocks", ({ flowLayout }) => {
   );
   flowLayout.appendChild(inline2);
 
-  const view = UIView.alloc().initWithFrame(CGRectMake(0, 0, 100, 100));
-  view.backgroundColor = UIColor.purpleColor;
-
   // Should be sized correctly before adding view
   // TODO: assert on position once we have a robust way to do so
   assert.is(inlineBlock.attachment.bounds.size.width, 60);
   assert.is(inlineBlock.attachment.bounds.size.height, 60);
-  inlineBlock.view = view;
-  flowLayout.textView.addSubview(inlineBlock.view);
+  // inlineBlock.view = view;
+  // flowLayout.textView.addSubview(inlineBlock.view);
 
   // Should be sized correctly after adding view too
   // TODO: assert on position once we have a robust way to do so

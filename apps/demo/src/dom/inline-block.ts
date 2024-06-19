@@ -86,12 +86,20 @@ export class InlineBlock extends FlowElement {
   get attachment(): Attachment {
     if (!this._attachment) {
       const attachment = Attachment.new() as Attachment;
+      attachment.allowsTextAttachmentView = true;
       attachment.bounds = CGRectMake(0, 0, this.width, this.height);
-      if (this.view) {
-        attachment.view = this.view;
-      } else {
-        attachment.image = InlineBlock.placeholderImage;
-      }
+      // if (this.view) {
+      //   console.log(
+      //     `[InlineBlock.getAttachment] setting attachment.view to`,
+      //     this.view,
+      //   );
+      //   // attachment.view = this.view;
+      // } else {
+      //   console.log(
+      //     `[InlineBlock.getAttachment] setting attachment.view to placeholderImage`,
+      //   );
+      //   attachment.image = InlineBlock.placeholderImage;
+      // }
       this._attachment = attachment;
     }
     return this._attachment;
@@ -106,37 +114,64 @@ export class InlineBlock extends FlowElement {
     // as `display: inline-block` respects width and height regardless of
     // contents, unlike `display: inline` which ignores them altogether.
     this._view = value;
-    if (value) {
-      this.attachment.view = value;
-    } else {
-      // @ts-expect-error null pointer
-      this.attachment.view = null;
-      this.attachment.image = InlineBlock.placeholderImage;
-    }
+    // if (value) {
+    //   console.log(
+    //     `[InlineBlock.setView] setting this.attachment.view to`,
+    //     value,
+    //   );
+    //   // this.attachment.view = value;
+    // } else {
+    //   console.log(`[InlineBlock.setView] setting this.attachment.view to null`);
+    //   // @ts-expect-error null pointer
+    //   this.attachment.view = null;
+    //   this.attachment.image = InlineBlock.placeholderImage;
+    // }
     this.flowLayout?.onDescendantDidUpdateAttachment(this);
   }
 }
 
-// @NativeClass
-// class AttachmentView extends UIView {
-//   // intrinsicContentSize
-//   // padding
-//   // radius
-//   // drawRect(rect: CGRect): void {}
-// }
+@NativeClass
+class AttachmentView extends UIView {
+  // textAttachment?: Attachment;
 
-// @NativeClass
-// class AttachmentViewProvider extends NSTextAttachmentViewProvider {
-//   // Alternatively, set this.view in advance on an NSTextAttachmentViewProvider.
-//   // https://developer.apple.com/documentation/uikit/uiviewcontroller/1621454-loadview
-//   loadView(): void {
-//     this.view = AttachmentView.new();
-//   }
-// }
+  // intrinsicContentSize
+  // padding
+  // radius
+  drawRect(_rect: CGRect): void {
+    console.log("[AttachmentView.drawRect]");
+    UIColor.systemBackgroundColor.set();
+    UIRectFill(this.bounds);
+    const fillColor = UIColor.systemBlueColor;
+    fillColor.set();
+    const cornerRadius = 10;
+    UIBezierPath.bezierPathWithRoundedRectCornerRadius(
+      this.bounds,
+      cornerRadius,
+    );
+    const labelText = NSAttributedString.alloc().initWithString("heya");
+    const labelSize = labelText.size();
+    const yPadding = 0;
+    labelText.drawAtPoint({
+      x: this.bounds.origin.x + (this.bounds.size.width - labelSize.width) / 2,
+      y: this.bounds.origin.y + yPadding,
+    });
+  }
+}
+
+@NativeClass
+class AttachmentViewProvider extends NSTextAttachmentViewProvider {
+  // Alternatively, set this.view in advance on an NSTextAttachmentViewProvider.
+  // https://developer.apple.com/documentation/uikit/uiviewcontroller/1621454-loadview
+  loadView(): void {
+    const attachmentView = AttachmentView.new() as AttachmentView;
+    // attachmentView.textAttachment = this.textAttachment;
+    this.view = attachmentView;
+  }
+}
 
 @NativeClass
 class Attachment extends NSTextAttachment {
-  view?: UIView;
+  // view?: UIView;
 
   viewProviderForParentViewLocationTextContainer(
     parentView: UIView,
@@ -144,16 +179,20 @@ class Attachment extends NSTextAttachment {
     textContainer: NSTextContainer,
   ): NSTextAttachmentViewProvider {
     const viewProvider =
-      NSTextAttachmentViewProvider.alloc().initWithTextAttachmentParentViewTextLayoutManagerLocation(
+      AttachmentViewProvider.alloc().initWithTextAttachmentParentViewTextLayoutManagerLocation(
         this,
         parentView,
         textContainer?.textLayoutManager,
         location,
       );
 
-    if (this.view) {
-      viewProvider.view = this.view;
-    }
+    // console.log(
+    //   `[viewProviderForParentViewLocationTextContainer] this.view`,
+    //   this.view,
+    // );
+    // if (this.view) {
+    //   viewProvider.view = this.view;
+    // }
 
     viewProvider.tracksTextAttachmentViewBounds = true;
     return viewProvider;
