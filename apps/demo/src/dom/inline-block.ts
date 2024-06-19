@@ -105,3 +105,36 @@ export class InlineBlock extends FlowElement {
     this.flowLayout?.onDescendantDidUpdateAttachment(this);
   }
 }
+
+@NativeClass
+class AttachmentView extends UIView {
+  // intrinsicContentSize
+  // padding
+  // radius
+}
+
+@NativeClass
+class AttachmentViewProvider extends NSTextAttachmentViewProvider {
+  loadView(): void {
+    this.view = AttachmentView.new();
+  }
+}
+
+@NativeClass
+class Attachment extends NSTextAttachment {
+  viewProviderForParentViewLocationTextContainer(
+    parentView: UIView,
+    location: NSTextLocation,
+    textContainer: NSTextContainer,
+  ): NSTextAttachmentViewProvider {
+    const viewProvider =
+      AttachmentViewProvider.alloc().initWithTextAttachmentParentViewTextLayoutManagerLocation(
+        this,
+        parentView,
+        textContainer?.textLayoutManager,
+        location,
+      );
+    viewProvider.tracksTextAttachmentViewBounds = true;
+    return viewProvider;
+  }
+}
