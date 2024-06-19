@@ -152,7 +152,7 @@ class Attachment extends NSTextAttachment {
       );
 
     if (this.view) {
-      viewProvider.view;
+      viewProvider.view = this.view;
     }
 
     viewProvider.tracksTextAttachmentViewBounds = true;
