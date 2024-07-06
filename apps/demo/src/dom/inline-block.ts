@@ -88,18 +88,6 @@ export class InlineBlock extends FlowElement {
       const attachment = Attachment.new() as Attachment;
       attachment.allowsTextAttachmentView = true;
       attachment.bounds = CGRectMake(0, 0, this.width, this.height);
-      // if (this.view) {
-      //   console.log(
-      //     `[InlineBlock.getAttachment] setting attachment.view to`,
-      //     this.view,
-      //   );
-      //   // attachment.view = this.view;
-      // } else {
-      //   console.log(
-      //     `[InlineBlock.getAttachment] setting attachment.view to placeholderImage`,
-      //   );
-      //   attachment.image = InlineBlock.placeholderImage;
-      // }
       this._attachment = attachment;
     }
     return this._attachment;
@@ -114,29 +102,12 @@ export class InlineBlock extends FlowElement {
     // as `display: inline-block` respects width and height regardless of
     // contents, unlike `display: inline` which ignores them altogether.
     this._view = value;
-    // if (value) {
-    //   console.log(
-    //     `[InlineBlock.setView] setting this.attachment.view to`,
-    //     value,
-    //   );
-    //   // this.attachment.view = value;
-    // } else {
-    //   console.log(`[InlineBlock.setView] setting this.attachment.view to null`);
-    //   // @ts-expect-error null pointer
-    //   this.attachment.view = null;
-    //   this.attachment.image = InlineBlock.placeholderImage;
-    // }
     this.flowLayout?.onDescendantDidUpdateAttachment(this);
   }
 }
 
 @NativeClass
 class AttachmentView extends UIView {
-  // textAttachment?: Attachment;
-
-  // intrinsicContentSize
-  // padding
-  // radius
   drawRect(_rect: CGRect): void {
     console.log("[AttachmentView.drawRect]");
     UIColor.systemBackgroundColor.set();
@@ -160,19 +131,14 @@ class AttachmentView extends UIView {
 
 @NativeClass
 class AttachmentViewProvider extends NSTextAttachmentViewProvider {
-  // Alternatively, set this.view in advance on an NSTextAttachmentViewProvider.
-  // https://developer.apple.com/documentation/uikit/uiviewcontroller/1621454-loadview
   loadView(): void {
     const attachmentView = AttachmentView.new() as AttachmentView;
-    // attachmentView.textAttachment = this.textAttachment;
     this.view = attachmentView;
   }
 }
 
 @NativeClass
 class Attachment extends NSTextAttachment {
-  // view?: UIView;
-
   viewProviderForParentViewLocationTextContainer(
     parentView: UIView,
     location: NSTextLocation,
@@ -185,15 +151,6 @@ class Attachment extends NSTextAttachment {
         textContainer?.textLayoutManager,
         location,
       );
-
-    // console.log(
-    //   `[viewProviderForParentViewLocationTextContainer] this.view`,
-    //   this.view,
-    // );
-    // if (this.view) {
-    //   viewProvider.view = this.view;
-    // }
-
     viewProvider.tracksTextAttachmentViewBounds = true;
     return viewProvider;
   }
