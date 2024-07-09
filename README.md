@@ -1,92 +1,22 @@
 # nativescript-flowlayout
 
-🚧 A work in progress!
+## Prerequisites
 
-<!--
-## [NSAttributedStringKey](https://developer.apple.com/documentation/foundation/nsattributedstringkey?language=objc)
+Set up your [environment](https://docs.nativescript.org/setup/macos#setting-up-macos-for-ios) for NativeScript development. If you have developed React Native or pure native apps before, you may have already done some of the steps.
 
-Useless for type-safety as these all evaluate as string. Just keeping as a reference.
+The main NativeScript-specific step is `npm install -g nativescript`, which globally installs the NativeScript CLI, `ns`.
 
-The ones commented out are not available in NativeScript.
+## Running
 
-```ts
-type NSAttributedStringKey =
-  | typeof NSAttachmentAttributeName
-  | typeof NSBackgroundColorAttributeName
-  | typeof NSBaselineOffsetAttributeName
-  // | typeof NSCursorAttributeName
-  | typeof NSExpansionAttributeName
-  | typeof NSFontAttributeName
-  | typeof NSForegroundColorAttributeName
-  // | typeof NSGlyphInfoAttributeName
-  | typeof NSKernAttributeName
-  | typeof NSLigatureAttributeName
-  | typeof NSLinkAttributeName
-  | typeof NSMarkdownSourcePositionAttributeName
-  // | typeof NSMarkedClauseSegmentAttributeName
-  | typeof NSObliquenessAttributeName
-  | typeof NSParagraphStyleAttributeName
-  | typeof NSShadowAttributeName
-  // | typeof NSSpellingStateAttributeName
-  | typeof NSStrikethroughColorAttributeName
-  | typeof NSStrikethroughStyleAttributeName
-  | typeof NSStrokeColorAttributeName
-  | typeof NSStrokeWidthAttributeName
-  // | typeof NSSuperscriptAttributeName
-  // | typeof NSTextAlternativesAttributeName
-  | typeof NSTextEffectAttributeName
-  // | typeof NSToolTipAttributeName
-  | typeof NSUnderlineColorAttributeName
-  | typeof NSUnderlineStyleAttributeName
-  | typeof NSVerticalGlyphFormAttributeName
-  | typeof NSWritingDirectionAttributeName
-  // | typeof NSAccessibilityTextAlignmentAttribute
-  // | typeof NSAccessibilityAnnotationTextAttribute
-  // | typeof NSAccessibilityAttachmentTextAttribute
-  // | typeof NSAccessibilityAutocorrectedTextAttribute
-  // | typeof NSAccessibilityBackgroundColorTextAttribute
-  // | typeof NSAccessibilityCustomTextAttribute
-  // | typeof NSAccessibilityFontTextAttribute
-  // | typeof NSAccessibilityForegroundColorTextAttribute
-  // | typeof NSAccessibilityLanguageTextAttribute
-  // | typeof NSAccessibilityLinkTextAttribute
-  // | typeof NSAccessibilityListItemIndexTextAttribute
-  // | typeof NSAccessibilityListItemLevelTextAttribute
-  // | typeof NSAccessibilityListItemPrefixTextAttribute
-  // | typeof NSAccessibilityMarkedMisspelledTextAttribute
-  // | typeof NSAccessibilityMisspelledTextAttribute
-  // | typeof NSAccessibilityShadowTextAttribute
-  | typeof UIAccessibilitySpeechAttributeIPANotation
-  | typeof UIAccessibilitySpeechAttributeLanguage
-  | typeof UIAccessibilitySpeechAttributePitch
-  | typeof UIAccessibilitySpeechAttributePunctuation
-  | typeof UIAccessibilitySpeechAttributeQueueAnnouncement
-  | typeof UIAccessibilitySpeechAttributeSpellOut
-  | typeof UIAccessibilityTextAttributeCustom
-  | typeof UIAccessibilityTextAttributeHeadingLevel
-  // | typeof NSAccessibilityStrikethroughTextAttribute
-  // | typeof NSAccessibilityStrikethroughColorTextAttribute
-  // | typeof NSAccessibilitySuperscriptTextAttribute
-  // | typeof NSAccessibilityUnderlineTextAttribute
-  // | typeof NSAccessibilityUnderlineColorTextAttribute
-  | typeof UIAccessibilityTextAttributeContext
-  // | typeof NSCharacterShapeAttributeName
-  // | typeof NSUsesScreenFontsDocumentAttribute
-  | typeof UIAccessibilitySpeechAttributeAnnouncementPriority
-  | typeof NSInflectionAgreementArgumentAttributeName
-  | typeof NSInflectionAgreementConceptAttributeName
-  | typeof NSAlternateDescriptionAttributeName
-  | typeof NSImageURLAttributeName
-  | typeof NSInflectionAlternativeAttributeName
-  | typeof NSInflectionRuleAttributeName
-  | typeof NSInlinePresentationIntentAttributeName
-  | typeof NSLanguageIdentifierAttributeName
-  | typeof NSMorphologyAttributeName
-  | typeof NSPresentationIntentAttributeName
-  | typeof NSInflectionReferentConceptAttributeName
-  | typeof NSReplacementIndexAttributeName
-  // | typeof CSSuggestionHighlightAttributeName
-  | typeof UITextItemTagAttributeName
-  | typeof NSTrackingAttributeName;
+```sh
+# Install the monorepo's JavaScript dependencies.
+npm install
+
+# Run the app.
+cd apps/demo
+ns run ios --no-hmr
 ```
--->
+
+Right now, the app is rigged up to run the test suite in `apps/demo/src/test/insertion.ts`. A single test is marked as `test.only` to focus on that while I try to find any way to get text attachments to behave properly.
+
+The action is in `apps/demo/src/dom/inline-block.ts`, and the problem is that on the `AttachmentViewProvider` class, neither the `loadView()` nor the `attachmentBoundsForAttributesLocationTextContainerProposedLineFragmentPosition()` methods get called. Basically I'm just trying to see any sign of life.

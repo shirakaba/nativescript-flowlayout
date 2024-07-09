@@ -131,9 +131,27 @@ class AttachmentView extends UIView {
 
 @NativeClass
 class AttachmentViewProvider extends NSTextAttachmentViewProvider {
+  // FIXME: This never gets called
   loadView(): void {
+    console.log("[AttachmentViewProvider.loadView]");
     const attachmentView = AttachmentView.new() as AttachmentView;
     this.view = attachmentView;
+  }
+
+  // FIXME: This never gets called, either.
+  attachmentBoundsForAttributesLocationTextContainerProposedLineFragmentPosition(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    _attributes: NSDictionary<string, any>,
+    _location: NSTextLocation,
+    _textContainer: NSTextContainer,
+    _proposedLineFragment: CGRect,
+    _position: CGPoint,
+  ): CGRect {
+    console.log(
+      "[AttachmentViewProvider.attachmentBoundsForAttributesLocationTextContainerProposedLineFragmentPosition]",
+      { "this.view": this.view, "this.view.bounds": this.view.bounds },
+    );
+    return this.view?.bounds ?? CGRectZero;
   }
 }
 
