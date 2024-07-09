@@ -1,7 +1,6 @@
 # NativeScript
 hooks/
 node_modules/
-platforms/
 
 # Logs
 logs
@@ -26,3 +25,31 @@ typings/
 !.vscode/tasks.json
 !.vscode/launch.json
 !.vscode/extensions.json
+
+# Xcode
+# iOS target
+## Xcode
+platforms/ios/build/
+platforms/ios/*.pbxuser
+platforms/ios/!default.pbxuser
+platforms/ios/*.mode1v3
+platforms/ios/!default.mode1v3
+platforms/ios/*.mode2v3
+platforms/ios/!default.mode2v3
+platforms/ios/*.perspectivev3
+platforms/ios/!default.perspectivev3
+platforms/ios/xcuserdata
+platforms/ios/*.xccheckout
+platforms/ios/*.moved-aside
+platforms/ios/DerivedData
+platforms/ios/*.hmap
+platforms/ios/*.ipa
+platforms/ios/*.xcuserstate
+platforms/ios/project.xcworkspace
+platforms/ios/.xcode.env.local
+
+## Bundle artifacts
+platforms/ios/*.jsbundle
+
+## CocoaPods
+platforms/ios/Pods/
