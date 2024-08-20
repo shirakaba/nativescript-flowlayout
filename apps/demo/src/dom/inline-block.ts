@@ -85,7 +85,11 @@ export class InlineBlock extends FlowElement {
   private _attachment?: Attachment;
   get attachment(): Attachment {
     if (!this._attachment) {
-      const attachment = Attachment.new() as Attachment;
+      const attachment = Attachment.alloc().initWithDataOfType(
+        // @ts-expect-error nullable pointer
+        null,
+        "public.data",
+      ) as Attachment;
       attachment.bounds = CGRectMake(0, 0, this.width, this.height);
       if (this.view) {
         attachment.view = this.view;
@@ -136,6 +140,15 @@ export class InlineBlock extends FlowElement {
 
 @NativeClass
 class Attachment extends NSTextAttachment {
+  static {
+    // If we subclass NSTextAttachmentViewProvider, we'd register the subclass's
+    // class instead of the base class.
+    NSTextAttachment.registerTextAttachmentViewProviderClassForFileType(
+      NSTextAttachmentViewProvider.class(),
+      "public.data",
+    );
+  }
+
   view?: UIView;
 
   viewProviderForParentViewLocationTextContainer(
@@ -153,6 +166,7 @@ class Attachment extends NSTextAttachment {
 
     if (this.view) {
       viewProvider.view = this.view;
+      this.view.bounds = this.bounds;
     }
 
     viewProvider.tracksTextAttachmentViewBounds = true;
